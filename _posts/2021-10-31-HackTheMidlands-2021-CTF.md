@@ -25,14 +25,14 @@ There's something about this image that is more than meets the eye.
 ```
 
 Attached to this was an image:
-![findMe](http://172.18.162.252:1234/assets/htm-2021/findMe.png)
+![findMe]({{site.url}}/assets/htm-2021/findMe.png)
 
 Photography is one of my most loved hobbies so I knew this had to be one of three things.
 1. There was something hidden in the text when you open up the image as a text file. This was not it. The file looked like gibberish with no sight of the flag:
-![findMeGibberish](http://172.18.162.252:1234/assets/htm-2021/findMeGibberish.png)
+![findMeGibberish]({{site.url}}/assets/htm-2021/findMeGibberish.png)
 2. Sometimes when you adjust the file's brightness or contrast you can see some hidden text. This was unlikely to be the case because then you would have to type the CTF flag manually. I tried it regardless without any success.
 3. The file had some [EXIF][exif-info-link] data about it. I went to an online [EXIF viewer][exif-link] and lo and behold, the flag `HTM{EXIF_GRABBED}` was there:
-![findMeExif](http://172.18.162.252:1234/assets/htm-2021/findMeExif.png)
+![findMeExif]({{site.url}}/assets/htm-2021/findMeExif.png)
 
 # Challenge \#2: PingIT (5pt)
 Description: 
@@ -44,7 +44,7 @@ Can you find any vulnerabilities with this?
 
 This is what the website looked like upon visiting it:
 
-![pingitsite](http://172.18.162.252:1234/assets/htm-2021/pingitsite.png)
+![pingitsite]({{site.url}}/assets/htm-2021/pingitsite.png)
 
 It`s quite clear that the website takes the user input and passes it to the ping command directly, something like this:
 ```bash
@@ -52,7 +52,7 @@ ping 127.0.0.1
 ```
 In `bash` if you want to run two commands one after the other, you can use the `;` sign between them. So I tried to run `uname` which should return the kernel name I am running on that machine. And it did!
 
-![pingmeuname](http://172.18.162.252:1234/assets/htm-2021/pingmeuname.png)
+![pingmeuname]({{site.url}}/assets/htm-2021/pingmeuname.png)
 
 It says in the description that the flag is located in `/home/cmnatic`. I just don't know what the name of the file is, so I ran 
 ```bash
@@ -128,13 +128,13 @@ and are located in a users home directory
 
 This is what the website looked like upon visiting it:
 
-![coolbookingsinital](http://172.18.162.252:1234/assets/htm-2021/coolbookingsinital.png)
+![coolbookingsinital]({{site.url}}/assets/htm-2021/coolbookingsinital.png)
 
 The first thing I noticed instantly while playing with the webpage was that when I went to the `about` page, it would not load, but instead, it would error at the bottom of the page:
-![coolbookingserror](http://172.18.162.252:1234/assets/htm-2021/coolbookingserror.png)
+![coolbookingserror]({{site.url}}/assets/htm-2021/coolbookingserror.png)
 
 The error had a full path to where the page should've been `/opt/web/about.html`. Does this mean we can just change the URL and relatively go back to root and then climb back up to the location of where the flag was in `Challenge 2`? Let's try: `{dockerinstanceURL}/home?page=../../../home/cmnatic/flag.txt`
-![coolbookingssuccess](http://172.18.162.252:1234/assets/htm-2021/coolbookingssuccess.png)
+![coolbookingssuccess]({{site.url}}/assets/htm-2021/coolbookingssuccess.png)
 
 What do you know? We found the flag: `HTM{INJECTION_SUCCESS}`! 
 
@@ -152,7 +152,7 @@ Attached we have a zip file, with a docker project inside. Normally, I would've 
 grep -rni "HTM{.*}" *
 ```
 returned me the flag `HTM{DOCKER_DIVE}` so I was happy enough:
-![deepdive](http://172.18.162.252:1234/assets/htm-2021/deepdive.png)
+![deepdive]({{site.url}}/assets/htm-2021/deepdive.png)
 
 
 # Challenge \#6: Flag Checker (10pt)
@@ -186,7 +186,7 @@ I hear the address book contains more then just contact details!
 
 This is what the website looked like upon visiting it and searching for the person hinted in the description:
 
-![addressbook](http://172.18.162.252:1234/assets/htm-2021/addressbook.png)
+![addressbook]({{site.url}}/assets/htm-2021/addressbook.png)
 
 Searching for any other random name did not yield any results. I knew this was accessing data inside of some sort of database, so I tried my hand at doing an SQL injection attack.
 My train of thought was that because this is a simple docker instance it might just use SQLite. If it does it should respond to ```sqlite_version()``` with the version it has, if it doesn't, then I could try other variants of SQL and their specific commands.
@@ -209,7 +209,7 @@ select * from sometablethatIdontknow where name='blahblah' AND 1=2 UNION SELECT 
 The other 2 `1`'s there I need just to be able to fully populate the table on the website which needs 3 elements in total.
 
 I got lucky! The database was in fact an SQLite database and it returned its version:
-![addressbookversion](http://172.18.162.252:1234/assets/htm-2021/addressbookversion.png)
+![addressbookversion]({{site.url}}/assets/htm-2021/addressbookversion.png)
 
 Now that we know what database there is, I can always query all the table names. To do that in SQL, my input became:
 ```
@@ -230,7 +230,7 @@ select * from addressbook where name='blahblah' AND 1=2 UNION SELECT *, 1, 1 FRO
 ```
 
 That was it! The flag, `HTM{ADDRESS_BOOK_INJECTION}` was mine!
-![addressbookflag](http://172.18.162.252:1234/assets/htm-2021/addressbookflag.png)
+![addressbookflag]({{site.url}}/assets/htm-2021/addressbookflag.png)
 
 
 # In conclusion

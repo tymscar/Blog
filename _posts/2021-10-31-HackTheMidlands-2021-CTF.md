@@ -25,7 +25,7 @@ There's something about this image that is more than meets the eye.
 ```
 
 Attached to this was an image:
-![findMe]({{site.url}}/assets/htm-2021/findMe.png)
+![findMe]({{site.url}}/assets/htm-2021/findme.png)
 
 Photography is one of my most loved hobbies so I knew this had to be one of three things.
 1. There was something hidden in the text when you open up the image as a text file. This was not it. The file looked like gibberish with no sight of the flag:

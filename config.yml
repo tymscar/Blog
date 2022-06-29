@@ -1,0 +1,38 @@
+baseUrl: blog.tymscar.com
+languageCode: en-us
+theme: terminal
+paginate: 5
+
+
+params:
+  # dir name of your blog content (default is `content/posts`)
+  contentTypeName: posts
+  # ["orange", "blue", "red", "green", "pink"]
+  themeColor: red
+  # if you set this to 0, only submenu trigger will be visible
+  showMenuItems: 0 
+  # show selector to switch language
+  showLanguageSelector: false
+  # set theme to full screen width
+  fullWidthTheme: false
+  # center theme with default width
+  centerTheme: true
+  favicon: "/img/favicon/favicon.ico"
+  twitter:
+    creator: "tymscar"
+    site: "google.com"
+
+languages:
+  en:
+    languageName: English
+    title: The Tymscar Blog
+    subtitle: brain > /dev/brain
+    keywords: 'blog tech brain programming nerd linux unix'
+    menuMore: Show more
+    readMore: Read more
+    readOtherPosts: Read other posts
+
+    params:
+      logo:
+        logoText: Tymscar
+        logoHomeLink: /

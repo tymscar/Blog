@@ -13,7 +13,7 @@ keywords:
   - development
   - linux
   - technical
-description: I participated in this year's HTM CTF. Here is my experience!
+description: How to run a Jetbrains remote dev server on NixOS
 showFullContent: false
 readingTime: false
 hideComments: true

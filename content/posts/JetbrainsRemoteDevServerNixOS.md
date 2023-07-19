@@ -22,6 +22,8 @@ draft: false
 
 ![A remote project](/jb-nix-remote-server/project.png)
 
+EDIT: I have raised [a PR to fix this][pr-fix] upstream and got it merged, so you don't have to follow the guide anymore, you can just use the package on nixpkgs unstable for the time being and later on in the future, a stable branch.
+
 For the past year or so I have been very interested in [NixOS and Nix][nix-website] in general.
 I have set it up as my [main OS on my desktop][dotfiles], I have used it on remote VPS instances, and I have used it for local projects as well in the shape of nix environments.
 
@@ -104,6 +106,7 @@ That is all, now you can just open up Jetbrains Gateway, go to the SSH tab and j
 
 ![Project list](/jb-nix-remote-server/projects.png)
 
+[pr-fix]: https://github.com/NixOS/nixpkgs/pull/243533
 [nix-website]: https://nixos.org/
 [dotfiles]: https://github.com/tymscar/dotfiles
 [nicolas-solution]: https://github.com/NixOS/nixpkgs/issues/153335#issuecomment-1465833977

@@ -1,4 +1,274 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>The Tymscar Blog</title><link>/</link><description>Recent content on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Mon, 10 Jul 2023 00:33:45 +0100</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml"/><item><title>Running Jetbrains remote dev servers on NixOS</title><link>/posts/jetbrainsremotedevservernixos/</link><pubDate>Mon, 10 Jul 2023 00:33:45 +0100</pubDate><guid>/posts/jetbrainsremotedevservernixos/</guid><description>EDIT: I have raised a PR to fix this upstream and got it merged, so you don&amp;rsquo;t have to follow the guide anymore, you can just use the package on nixpkgs unstable for the time being and later on in the future, a stable branch.
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>The Tymscar Blog</title><link>/</link><description>Recent content on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sat, 12 Aug 2023 18:04:45 +0100</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml"/><item><title>How I deploy private GitHub projects to local self-hosted servers (CI/CD)</title><link>/posts/privategithubcicd/</link><pubDate>Sat, 12 Aug 2023 18:04:45 +0100</pubDate><guid>/posts/privategithubcicd/</guid><description>How I deploy private GitHub projects to local self-hosted servers (CI/CD) I have a lot of experience with massive CI/CD pipelines that deploy private code to public servers. I&amp;rsquo;ve also worked with pipelines that deploy public repositories to private servers, such as my homelab. However, I never experimented with a pipeline that takes a private GitHub repo, builds it, and deploys it to a server on the LAN. That&amp;rsquo;s precisely what I needed for a project I&amp;rsquo;m currently working on that isn&amp;rsquo;t yet public.</description><content>&lt;h1 id="how-i-deploy-private-github-projects-to-local-self-hosted-servers-cicd">How I deploy private GitHub projects to local self-hosted servers (CI/CD)&lt;/h1>
+&lt;p>I have a lot of experience with massive CI/CD pipelines that deploy private code to public servers. I&amp;rsquo;ve also worked with pipelines that deploy public repositories to private servers, such as my homelab. However, I never experimented with a pipeline that takes a private GitHub repo, builds it, and deploys it to a server on the LAN. That&amp;rsquo;s precisely what I needed for a project I&amp;rsquo;m currently working on that isn&amp;rsquo;t yet public.&lt;/p>
+&lt;p>I took some time to design the best method for this. The two top ideas were: running a self-hosted GitHub Actions runner, which would then redeploy the service in the same LAN as the runner, or hosting a Docker container on a Proxmox VM. This container would act as a webhook and later redeploy the service on the same VM. I chose the second option because it offers more flexibility for future scenarios, such as deploying from repositories hosted on other platforms like GitLab.&lt;/p>
+&lt;p>Here&amp;rsquo;s what the workflow looks like:&lt;/p>
+&lt;pre tabindex="0">&lt;code class="language-ascii" data-lang="ascii"> +---------------------+
+| Code gets modified |
+| and commited to the |
+| github repository |
++----------+----------+
+|
+v
++------------------+
+| A github action |
+| script downloads |
+| builds and lints |
+| the code |
++--------+---------+
+|
+v
++----------------------+
+| This POST request is |
+| then routed through |
+| a cloudflare tunnel |
++----------+-----------+
+|
+v
++------------------------+
+| If all of that |
+| passes successfully |
+| send the redeploy |
+| command to the webhook |
+| container |
++-----------+------------+
+|
+v
++------------------------+
+| The webhook container |
+| now inside of the lan |
+| SSH&amp;#39;es into the host |
+| VM and recreates the |
+| project docker compose |
+| stack |
++-----------+------------+
+|
+v
++----------------------+
+| The project docker |
+| compose has a custom |
+| entrypoint that gets |
+| run every time it is |
+| recreated |
++----------+-----------+
+|
+v
++------------------------+
+| This entrypoint script |
+| loads the private key |
+| approved by github, |
+| downloads the repo, |
+| build the project, |
+| and serves it locally |
++-----------+------------+
+|
+v
++--------------------------------+
+| Because of some extra |
+| traefik configuration |
+| parametres in the docker |
+| compose file, the project |
+| is then exposed on the lan |
+| behind a valid SSL certificate |
++--------------------------------+
+&lt;/code>&lt;/pre>&lt;h2 id="the-github-action">The GitHub Action&lt;/h2>
+&lt;p>Creating a GitHub Action is straightforward. You need to create a YAML file that instructs GitHub what to do. In our case, we want it to execute every time code is committed to &lt;code>main&lt;/code>.&lt;/p>
+&lt;p>The filename isn&amp;rsquo;t crucial, but its location is. Mine is in the &lt;code>.github/workflows&lt;/code> directory in the repo and is named &lt;code>build_and_publish.yaml&lt;/code>.&lt;/p>
+&lt;p>The YAML is relatively easy to understand; it has two jobs. One job downloads, builds, and lints the code. The other, &amp;ldquo;publish&amp;rdquo;, triggers the webhook in our local LAN to republish the project. The &amp;ldquo;publish&amp;rdquo; job only executes if the &amp;ldquo;build&amp;rdquo; job completes without errors.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Build and Publish&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">on&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">push&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">branches&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">main&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">jobs&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">build&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runs-on&lt;/span>: &lt;span style="color:#ae81ff">ubuntu-latest&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">steps&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Checkout code&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uses&lt;/span>: &lt;span style="color:#ae81ff">actions/checkout@v2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Use Node.js&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uses&lt;/span>: &lt;span style="color:#ae81ff">actions/setup-node@v2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">with&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">node-version&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;18&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Install Dependencies&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: &lt;span style="color:#ae81ff">npm ci&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Lint&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: &lt;span style="color:#ae81ff">npm run lint&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Build&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: &lt;span style="color:#ae81ff">npm run build&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">publish&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runs-on&lt;/span>: &lt;span style="color:#ae81ff">ubuntu-latest&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">needs&lt;/span>: &lt;span style="color:#ae81ff">build&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">steps&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Trigger Webhook&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> RESPONSE=$(curl -X POST https://webhook.tymsc.ar/hooks/redeploy)
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> echo &amp;#34;$RESPONSE&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="the-cloudflare-tunnel-and-the-webhook-container">The Cloudflare tunnel and the webhook container&lt;/h2>
+&lt;p>The tunnel&amp;rsquo;s purpose is to avoid exposing my local LAN&amp;rsquo;s homelab ports to the internet. With a Cloudflare tunnel, I can control any exposed service and manage its traffic.&lt;/p>
+&lt;p>I chose to host both the tunnel and the webhook container on a VM in my local Proxmox server using Docker Compose. Here&amp;rsquo;s the &lt;code>docker-compose.yml&lt;/code> for them:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">version&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;3.3&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">services&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">webhook&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">build&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">context&lt;/span>: &lt;span style="color:#ae81ff">.&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">dockerfile&lt;/span>: &lt;span style="color:#ae81ff">Dockerfile&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">container_name&lt;/span>: &lt;span style="color:#ae81ff">webhook&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">environment&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">PUID=1000&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">PGID=1000&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">TZ=Europe/London&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">EXTRA_PARAM=-hotreload&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">volumes&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">/root/webhook:/config&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">/root/webhook/secrets/webhook_id_rsa:/etc/ssh_keys/id_rsa:rw&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.enable=true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.webhook.entrypoints=http&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.webhook.rule=Host(`webhook.tymsc.ar`)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.middlewares.webhook-https-redirect.redirectscheme.scheme=https&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.webhook.middlewares=webhook-https-redirect&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.webhook-secure.entrypoints=https&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.webhook-secure.rule=Host(`webhook.tymsc.ar`)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.webhook-secure.tls=true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.webhook-secure.service=webhook&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.services.webhook.loadbalancer.server.port=9000&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.docker.network=proxy&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">networks&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">proxy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restart&lt;/span>: &lt;span style="color:#ae81ff">always&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">tunnel&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">container_name&lt;/span>: &lt;span style="color:#ae81ff">cloudflared-tunnel-webhook&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">image&lt;/span>: &lt;span style="color:#ae81ff">cloudflare/cloudflared&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restart&lt;/span>: &lt;span style="color:#ae81ff">unless-stopped&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">command&lt;/span>: &lt;span style="color:#ae81ff">tunnel run&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">environment&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">TUNNEL_TOKEN= ### SECRET KEY HERE&lt;/span> &lt;span style="color:#75715e">###&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">networks&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">proxy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">networks&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">proxy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">external&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Any &lt;code>labels&lt;/code> you see are optional. I included them to route internal traffic and assign SSL certificates.&lt;/p>
+&lt;p>&lt;code>PUID&lt;/code> and &lt;code>PGID&lt;/code> labels are there to grant necessary permissions to the webhook user later.&lt;/p>
+&lt;p>The &lt;code>TUNNEL_TOKEN&lt;/code> variable is the key from Cloudflare you get when creating a tunnel. To get yours, visit Cloudflare -&amp;gt; Zero Trust -&amp;gt; Access -&amp;gt; Tunnels, and establish a tunnel with your desired URL, in my case, &lt;code>webhook.tymsc.ar&lt;/code>.&lt;/p>
+&lt;p>Because the tunnel and webhook service are defined in this Docker Compose file, they can reference each other by name. So, in the Cloudflare online console, when you create the tunnel, set the Service parameter to &lt;code>http://webhook:9000&lt;/code>. 9000 is the default port for &lt;code>roxedus/webhook&lt;/code>.&lt;/p>
+&lt;p>An observant reader might notice the webhook container uses a Dockerfile instead of a container name. That&amp;rsquo;s because I needed SSH access on that container, and the base container didn&amp;rsquo;t have it. So, I added it. Here&amp;rsquo;s the Dockerfile:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-Dockerfile" data-lang="Dockerfile">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">FROM&lt;/span>&lt;span style="color:#e6db74"> roxedus/webhook&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">RUN&lt;/span> apk --no-cache add openssh-client&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Here&amp;rsquo;s the folder structure for the webhook service:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>.
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>|-- Dockerfile
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>|-- docker-compose.yml
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>|-- hooks
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>| &lt;span style="color:#e6db74">`&lt;/span>-- hooks.json
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>|-- scripts
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>| &lt;span style="color:#e6db74">`&lt;/span>-- redeploy.sh
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74">`&lt;/span>-- secrets
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">`&lt;/span>-- webhook_id_rsa
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>We discussed the first two, but what about the others?&lt;/p>
+&lt;p>&lt;code>webhook_id_rsa&lt;/code> inside &lt;code>secrets&lt;/code> is the SSH key allowing this container to SSH into the Proxmox VM hosting it, and the project&amp;rsquo;s container we want to deploy.&lt;/p>
+&lt;p>The &lt;code>hooks/hooks.json&lt;/code> file has a definition of hooks and their actions. Currently, there&amp;rsquo;s only one hook, &lt;code>redeploy&lt;/code>, which executes the &lt;code>redeploy.sh&lt;/code> script in the scripts directory.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-json" data-lang="json">&lt;span style="display:flex;">&lt;span>[
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;id&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;redeploy&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;execute-command&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;/config/scripts/redeploy.sh&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;command-working-directory&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;/config/scripts&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;response-message&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;✅ Redeploying project!&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>]
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">#!/bin/sh
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>COMMAND&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#34;nohup docker compose -f /root/project/docker-compose.yml up --force-recreate --build -d &amp;amp;&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>HOST_IP&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#66d9ef">$(&lt;/span>ip route | awk &lt;span style="color:#e6db74">&amp;#39;/default/ { print $3 }&amp;#39;&lt;/span>&lt;span style="color:#66d9ef">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>ssh-keyscan $HOST_IP &amp;gt; /root/.ssh/known_hosts
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>ssh -i /etc/ssh_keys/id_rsa root@$HOST_IP -o StrictHostKeyChecking&lt;span style="color:#f92672">=&lt;/span>no -o UserKnownHostsFile&lt;span style="color:#f92672">=&lt;/span>/dev/null $COMMAND
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="the-project-container">The project container&lt;/h2>
+&lt;p>This is much simpler than the webhook container. Here&amp;rsquo;s its folder structure:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>.
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>|-- Dockerfile
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>|-- docker-compose.yml
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>|-- entrypoint.sh
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74">`&lt;/span>-- secrets
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">`&lt;/span>-- id_rsa
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The &lt;code>secrets/id_rsa&lt;/code> file is an SSH private key allowing us to download a private GitHub repository. Its public counterpart was uploaded to GitHub.&lt;/p>
+&lt;p>Here&amp;rsquo;s the &lt;code>docker-compose.yml&lt;/code> file for the project container:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">version&lt;/span>: &lt;span style="color:#e6db74">&amp;#39;3&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">services&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">project&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">build&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">context&lt;/span>: &lt;span style="color:#ae81ff">.&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">dockerfile&lt;/span>: &lt;span style="color:#ae81ff">Dockerfile&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">container_name&lt;/span>: &lt;span style="color:#ae81ff">project&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">ports&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;5000:5000&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">volumes&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">/root/project/secrets:/secrets&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.enable=true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.project.entrypoints=http&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.project.rule=Host(`project.tymsc.ar`)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.middlewares.project-https-redirect.redirectscheme.scheme=https&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.project.middlewares=project-https-redirect&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.project-secure.entrypoints=https&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.project-secure.rule=Host(`project.tymsc.ar`)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.project-secure.tls=true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.project-secure.service=project&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.services.project.loadbalancer.server.port=5000&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.docker.network=proxy&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">networks&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">proxy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restart&lt;/span>: &lt;span style="color:#ae81ff">always&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">networks&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">proxy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">external&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Like before, the &lt;code>labels&lt;/code> are optional. They&amp;rsquo;re there to access &lt;code>project.tymsc.ar&lt;/code> locally, with SSL certificates handled by Traefik.&lt;/p>
+&lt;p>The critical part is the secrets passed as a volume and the use of a custom Dockerfile. Here&amp;rsquo;s the Dockerfile:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-Dockerfile" data-lang="Dockerfile">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">FROM&lt;/span>&lt;span style="color:#e6db74"> node:18&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">WORKDIR&lt;/span>&lt;span style="color:#e6db74"> /app&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">RUN&lt;/span> apt-get update &lt;span style="color:#f92672">&amp;amp;&amp;amp;&lt;/span> apt-get install -y git openssh-client &lt;span style="color:#f92672">&amp;amp;&amp;amp;&lt;/span> npm install -g serve&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">COPY&lt;/span> entrypoint.sh /entrypoint.sh&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">RUN&lt;/span> chmod +x /entrypoint.sh&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">EXPOSE&lt;/span>&lt;span style="color:#e6db74"> 5000&lt;/span>&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#960050;background-color:#1e0010">&lt;/span>&lt;span style="color:#66d9ef">CMD&lt;/span> [&lt;span style="color:#e6db74">&amp;#34;/entrypoint.sh&amp;#34;&lt;/span>]&lt;span style="color:#960050;background-color:#1e0010">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>As you can see, each time this runs, it calls an &lt;code>entrypoint.sh&lt;/code> script. This ensures tasks inside it execute every time this container is recreated. As you now know, this happens every time the webhook is called. Let&amp;rsquo;s look at the script:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">#!/bin/sh
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>mkdir -p ~/.ssh
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cp /secrets/id_rsa ~/.ssh/
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>chmod &lt;span style="color:#ae81ff">600&lt;/span> ~/.ssh/id_rsa
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>ssh-keyscan github.com &amp;gt;&amp;gt; ~/.ssh/known_hosts
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>git clone git@github.com:tymscar/project.git /app
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cd /app
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>npm install
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>npm run build
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>serve -s build -p &lt;span style="color:#ae81ff">5000&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The first half of it handles the SSH keys for the private repo and downloads the project, while the last half installs the dependencies, builds it, and serves it to the LAN. At that point, if you go to the IP of the VM where you&amp;rsquo;re running this container and access port 5000, you should be able to see your project. Because I have the traefik labels set up, I can go to project.tymsc.ar and see it there.&lt;/p>
+&lt;p>And that&amp;rsquo;s basically it.&lt;/p>
+&lt;h2 id="thoughts">Thoughts&lt;/h2>
+&lt;p>The beauty of this approach is that if later down the line I want to do this with another private project, all I need to do is add another hook to the webhook container, create the project container just like this last one, and make sure the project has a GitHub action that triggers the webhook.&lt;/p>
+&lt;p>The best part is that this is not GitHub-specific either. If later down the line I want to move to GitLab, or I have a self-hosted Gitea instance, the same logic would apply. I would just need to find a way to trigger the webhook on a merge to the main branch.&lt;/p></content></item><item><title>Running Jetbrains remote dev servers on NixOS</title><link>/posts/jetbrainsremotedevservernixos/</link><pubDate>Mon, 10 Jul 2023 00:33:45 +0100</pubDate><guid>/posts/jetbrainsremotedevservernixos/</guid><description>EDIT: I have raised a PR to fix this upstream and got it merged, so you don&amp;rsquo;t have to follow the guide anymore, you can just use the package on nixpkgs unstable for the time being and later on in the future, a stable branch.
 For the past year or so I have been very interested in NixOS and Nix in general. I have set it up as my main OS on my desktop, I have used it on remote VPS instances, and I have used it for local projects as well in the shape of nix environments.</description><content>&lt;p>&lt;img src="/jb-nix-remote-server/project.png" alt="A remote project">&lt;/p>
 &lt;p>EDIT: I have raised &lt;a href="https://github.com/NixOS/nixpkgs/pull/243533">a PR to fix this&lt;/a> upstream and got it merged, so you don&amp;rsquo;t have to follow the guide anymore, you can just use the package on nixpkgs unstable for the time being and later on in the future, a stable branch.&lt;/p>
 &lt;p>For the past year or so I have been very interested in &lt;a href="https://nixos.org/">NixOS and Nix&lt;/a> in general.

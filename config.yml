@@ -22,6 +22,11 @@ params:
     creator: "tymscar"
     site: "google.com"
 
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+
 languages:
   en:
     languageName: English

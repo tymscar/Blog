@@ -13,7 +13,7 @@
 
   {{ partial "header.html" . }}
 
-  <div class="content">
+  <div class="content {{ .Params.custom_css_class }}">
     {{ block "main" . }}
     {{ end }}
   </div>

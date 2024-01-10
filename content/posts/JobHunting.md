@@ -14,7 +14,7 @@ keywords:
 description: How finding a good development job in 2024 is a herculean task
 custom_css_class: software-recruitment
 showFullContent: false
-readingTime: false
+readingTime: true
 hideComments: true
 draft: false
 ---

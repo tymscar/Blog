@@ -1,6 +1,6 @@
 ---
 title: Critical Alert - Tech Industry Must Act on Job Market Chaos!
-date: '2023-01-10T12:31:42+00:00'
+date: '2024-01-10T12:31:42+00:00'
 author: Oscar Molnar
 authorTwitter: 'tymscar'
 tags:

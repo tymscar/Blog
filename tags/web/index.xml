@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>web on The Tymscar Blog</title><link>/tags/web/</link><description>Recent content in web on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Thu, 18 Jan 2024 12:00:00 +0000</lastBuildDate><atom:link href="/tags/web/index.xml" rel="self" type="application/rss+xml"/><item><title>Soap sim</title><link>/posts/soapsim/</link><pubDate>Thu, 18 Jan 2024 12:00:00 +0000</pubDate><guid>/posts/soapsim/</guid><description> Your browser does not support the canvas element.</description><content>&lt;script src="/soap-sim/index.js">&lt;/script>
+&lt;div id="canvas-container">
+&lt;canvas id="myCanvas" width="400" height="400">
+Your browser does not support the canvas element.
+&lt;/canvas>
+&lt;/div></content></item></channel></rss>

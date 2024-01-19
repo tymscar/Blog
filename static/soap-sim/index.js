@@ -1,11 +1,14 @@
-let circles = [];
-let soap = [];
-const canvasSize = 400;
+let canvasSize = 400;
 const circleSize = 3;
 const repulsionStrength = 0.0005;
+let runSimulation = false;
+
 let lastFrameTime = Date.now();
 let frameCount = 0;
-let fps = 0;
+let fps = 1;
+
+let circles = [];
+let soap = [];
 
 const updateFPS = () => {
     const now = Date.now();
@@ -19,6 +22,37 @@ const updateFPS = () => {
     }
 }
 
+const resizeCanvas = () => {
+    const canvas = document.getElementById('js-canvas');
+    canvasSize = canvas.offsetWidth;
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    resetSimulation();
+}
+
+const simulateButtonHandler = () => {
+    runSimulation = !runSimulation;
+    render();
+}
+
+const resetSimulation = () => {
+    circles = [];
+    soap = [];
+
+    for (let i = 0; i < canvasSize/(circleSize * 2); i+=2) {
+        for (let j = 0; j < canvasSize/(circleSize * 2); j+=2) {
+            circles.push({
+                x: i * circleSize * 2 + circleSize,
+                y: j * circleSize * 2 + circleSize,
+                dx: 0,
+                dy: 0,
+            });
+        }
+    }
+
+    render();
+}
+
 const getTapPos = (canvas, evt) => {
     const rect = canvas.getBoundingClientRect();
     return {
@@ -28,7 +62,7 @@ const getTapPos = (canvas, evt) => {
 }
 
 const handleTap = (event) => {
-    const canvas = document.getElementById('myCanvas');
+    const canvas = document.getElementById('js-canvas');
     const mousePos = getTapPos(canvas, event);
     soap.push({
         x: mousePos.x,
@@ -37,6 +71,7 @@ const handleTap = (event) => {
 }
 
 const updatePositions = () => {
+
     circles = circles.map((circle, index) => {
         let dx = 0;
         let dy = 0;
@@ -83,7 +118,7 @@ const updatePositions = () => {
 };
 
 const render = () => {
-    const canvas = document.getElementById('myCanvas');
+    const canvas = document.getElementById('js-canvas');
     const ctx = canvas.getContext('2d');
 
     ctx.fillStyle = '#3a6788';
@@ -101,36 +136,36 @@ const render = () => {
     updateFPS();
     ctx.font = '35px Arial';
     ctx.fillStyle = 'black';
-    ctx.fillText('FPS: ' + fps, 10, canvasSize - 10);
-
     ctx.strokeStyle = 'green';
     ctx.lineWidth = 1;
-    ctx.strokeText('FPS: ' + fps, 10, canvasSize - 10);
+
+    if(runSimulation){
+        ctx.fillText('FPS: ' + fps, 10, canvasSize - 10);
+        ctx.strokeText('FPS: ' + fps, 10, canvasSize - 10);
+    } else {
+        ctx.fillText('Paused', 10, canvasSize - 10);
+        ctx.strokeText('Paused', 10, canvasSize - 10);
+    }
 }
 
 const simulate = () => {
-    render();
-    updatePositions();
+
+    if(runSimulation){
+        render();
+        updatePositions();
+    }
 
     requestAnimationFrame(simulate);
 }
 
-window.onload = () => {
-    for (let i = 0; i < canvasSize/(circleSize * 2); i++) {
-        for (let j = 0; j < canvasSize/(circleSize * 2); j++) {
-
-            if (Math.random() < 0.01) continue;
-            circles.push({
-                x: i * circleSize * 2 + circleSize,
-                y: j * circleSize * 2 + circleSize,
-                dx: 0,
-                dy: 0,
-            });
-        }
-    }
-
-    const canvas = document.getElementById('myCanvas');
+window.onload = async () => {
+    const canvas = document.getElementById('js-canvas');
     canvas.addEventListener('click', handleTap);
+    document.getElementById('js-simulate-button').onclick = simulateButtonHandler;
+    document.getElementById('js-reset-button').onclick = resetSimulation;
+    window.addEventListener('resize', resizeCanvas);
 
+    resizeCanvas();
+    resetSimulation();
     requestAnimationFrame(simulate);
 };

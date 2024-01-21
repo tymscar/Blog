@@ -158,7 +158,8 @@ const simulate = () => {
     requestAnimationFrame(simulate);
 }
 
-window.onload = async () => {
+
+window.addEventListener('load', async () => {
     const canvas = document.getElementById('js-canvas');
     canvas.addEventListener('click', handleTap);
     document.getElementById('js-simulate-button').onclick = simulateButtonHandler;
@@ -168,4 +169,4 @@ window.onload = async () => {
     resizeCanvas();
     resetSimulation();
     requestAnimationFrame(simulate);
-};
+});

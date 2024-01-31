@@ -117,6 +117,7 @@ window.addEventListener('load', async () => {
     }
     window.addEventListener('resize', resizeCanvas);
 
+
     resizeCanvas();
     requestAnimationFrame(simulate);
 });

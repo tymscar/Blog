@@ -1,25 +1,57 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>The Tymscar Blog</title><link>/</link><description>Recent content on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Thu, 18 Jan 2024 12:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml"/><item><title>Soap sim</title><link>/posts/soapsim/</link><pubDate>Thu, 18 Jan 2024 12:00:00 +0000</pubDate><guid>/posts/soapsim/</guid><description>Soap sim in JS Your browser does not support the canvas element. Toggle JS simulation Reset JS simulation Soap sim in WASM (Rust) Your browser does not support the canvas element. Toggle WASM simulation Reset WASM simulation</description><content>&lt;h1 id="soap-sim-in-js">Soap sim in JS&lt;/h1>
-&lt;script type="module" src="/soap-sim/index-js.js">&lt;/script>
-&lt;div id="js-canvas-container" style="display: flex; justify-content: center; align-items: center; ">
-&lt;canvas id="js-canvas" style="width: 100%; height: auto;">
-Your browser does not support the canvas element.
-&lt;/canvas>
-&lt;/div>
-&lt;div style="display: flex; justify-content: space-around; align-items: center; padding-top: 1em ">
-&lt;button id="js-simulate-button">Toggle JS simulation&lt;/button>
-&lt;button id="js-reset-button">Reset JS simulation&lt;/button>
-&lt;/div>
-&lt;h1 id="soap-sim-in-wasm-rust">Soap sim in WASM (Rust)&lt;/h1>
-&lt;script type="module" src="/soap-sim/index-wasm.js">&lt;/script>
-&lt;div id="wasm-canvas-container" style="display: flex; justify-content: center; align-items: center; ">
-&lt;canvas id="wasm-canvas" style="width: 100%; height: auto;">
-Your browser does not support the canvas element.
-&lt;/canvas>
-&lt;/div>
-&lt;div style="display: flex; justify-content: space-around; align-items: center; padding-top: 1em ">
-&lt;button id="wasm-simulate-button">Toggle WASM simulation&lt;/button>
-&lt;button id="wasm-reset-button">Reset WASM simulation&lt;/button>
-&lt;/div></content></item><item><title>Critical Alert - Tech Industry Must Act on Job Market Chaos!</title><link>/posts/jobhunting/</link><pubDate>Wed, 10 Jan 2024 12:31:42 +0000</pubDate><guid>/posts/jobhunting/</guid><description>Applying to a job is a broken system This blog post is a call to action, urging reform in the tech recruitment process. It&amp;rsquo;s a shared struggle, demanding change for a more efficient and promising future in our industry.
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>The Tymscar Blog</title><link>/</link><description>Recent content on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Tue, 30 Jan 2024 12:00:00 +0000</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml"/><item><title>How to fix WSL2 crashing mid compile (Or any heavy IO)</title><link>/posts/wsloom/</link><pubDate>Tue, 30 Jan 2024 12:00:00 +0000</pubDate><guid>/posts/wsloom/</guid><description>Reminiscing with some friends about how long the compile times were on Gentoo back in the day when we used it, I got curious about how long it would take to compile Chromium today in WSL2 on an i9 13900KF CPU. Back then, it used to take well over a day on my i5 3470.
+Getting Chromium to compile All you have to do to compile Chromium is follow the official Google build instructions here:</description><content>&lt;p>Reminiscing with some friends about how long the compile times were on Gentoo back in the day when we used it, I got curious about how long it would take to compile Chromium today in WSL2 on an &lt;a href="https://www.intel.com/content/www/us/en/products/sku/230497/intel-core-i913900kf-processor-36m-cache-up-to-5-80-ghz/specifications.html">i9 13900KF CPU&lt;/a>. Back then, it used to take well over a day on my &lt;a href="https://ark.intel.com/content/www/us/en/ark/products/68316/intel-core-i5-3470-processor-6m-cache-up-to-3-60-ghz.html">i5 3470&lt;/a>.&lt;/p>
+&lt;h1 id="getting-chromium-to-compile">Getting Chromium to compile&lt;/h1>
+&lt;p>All you have to do to compile Chromium is follow the official Google build instructions &lt;a href="https://chromium.googlesource.com/chromium/src/+/main/docs/linux/build_instructions.md">here&lt;/a>:&lt;/p>
+&lt;ul>
+&lt;li>Install the dependencies&lt;/li>
+&lt;li>Clone the depot tools as suggested&lt;/li>
+&lt;li>Clone the Chromium repository&lt;/li>
+&lt;li>Generate the Ninja build files&lt;/li>
+&lt;li>Start the compilation.&lt;/li>
+&lt;/ul>
+&lt;p>If you want to speed it up, as I did, you can tell Ninja to use all your cores by using the &lt;code>-j32&lt;/code> flag, where &lt;code>32&lt;/code> is the number of threads I have available. You can get this number by running &lt;code>nproc&lt;/code> in your terminal.&lt;/p>
+&lt;h1 id="what-goes-wrong">What goes wrong&lt;/h1>
+&lt;p>Normally, this should just work, as it does everywhere else, but in WSL, it will fail halfway through without any error. All you will see is this:
+&lt;img src="/wsloom/1.jpg" alt="autoninja crashing WSL" style="display: block; margin: auto; width: 100%;">&lt;/p>
+&lt;p>I then tried running with fewer threads, &lt;code>-j24&lt;/code>, &lt;code>-j16&lt;/code>, &lt;code>-j10&lt;/code>, even &lt;code>-j1&lt;/code>, as you can see in the picture.&lt;/p>
+&lt;p>While the compilation would be slower, the crash would always happen.&lt;/p>
+&lt;p>The reason I thought it made sense to try with fewer threads is that I suspected it might be a RAM issue. I only have 32GB and gave 30 of those to WSL for this compilation. However, since the entire Chromium repository is north of 40GB, I thought that might be the issue.&lt;/p>
+&lt;p>Googling for help was also very difficult because &lt;code>[process exited with code 1(0x000000001)]&lt;/code> isn&amp;rsquo;t the most helpful error you can get. ChatGPT was also of no use, because all it could provide were very generic ideas about how to compile Chromium or how to increase RAM allocation in WSL.&lt;/p>
+&lt;p>After hours of scouring GitHub, I managed to find &lt;a href="https://github.com/microsoft/WSL/issues/5410">this issue&lt;/a>, which was tangentially relevant to mine.&lt;/p>
+&lt;p>In it, the author mentions how I/O operations on large files, such as creating a huge empty file with &lt;code>dd&lt;/code>, would crash in the same way. I then tried it myself and, as you can see, it crashed:
+&lt;img src="/wsloom/2.jpg" alt="dd crashing WSL]" style="display: block; margin: auto; width: 100%;">&lt;/p>
+&lt;p>I was happy that at least now I knew something more about my error.&lt;/p>
+&lt;p>I tried everything mentioned in that thread, and the only thing that helped fix the &lt;code>dd&lt;/code> issue was, contrary to what you would expect, reducing the RAM allocation for WSL from 30 gigs down to under 12.&lt;/p>
+&lt;p>With less RAM, it would never crash anymore. Hooray! Let&amp;rsquo;s try compiling Chromium again. Nope&amp;hellip;&lt;/p>
+&lt;p>&lt;code>Jan 30 21:10:17 Bender kernel: Out of memory: Killed process 102026 (clang++) total-vm:2008036kB, anon-rss:991448kB, file-rss:0kB, shmem-rss:0kB, UID:1&amp;gt;&lt;/code>&lt;/p>
+&lt;p>As you can see, this time around we at least got a useful error, &amp;ldquo;Out of memory.&amp;rdquo; Which makes sense on one hand, because I lowered the amount of RAM to just 12GB, but it doesn&amp;rsquo;t make sense on the other hand, because I had well over 128GB of swap in WSL&amp;hellip;&lt;/p>
+&lt;p>One thing mentioned by &lt;code>therealkenc&lt;/code> in that thread was to give Windows a huge pagefile (basically swap). So, I tried that. I set it to 256GB, rebooted, and tried again.&lt;/p>
+&lt;p>This time with &lt;code>-j32&lt;/code> again, as well as 30GB ram in WSL. The good thing about Ninja is that it continues from where it left off. The bad thing is that it would&amp;rsquo;t get past 0/15840. It was stuck.
+&lt;img src="/wsloom/3.jpg" alt="j32 crashing WSL" style="display: block; margin: auto; width: 100%;">&lt;/p>
+&lt;p>As a last-ditch effort, I tried continuing the compilation with &lt;code>-j16&lt;/code> instead. And that magically worked. It actually finished, and I could run Chromium!
+&lt;img src="/wsloom/4.jpg" alt="chromium running" style="display: block; margin: auto; width: 100%;">&lt;/p>
+&lt;h1 id="so-how-does-that-make-sense">So how does that make sense?&lt;/h1>
+&lt;p>This is just me speculating here, but I think there is a bug with the I/O handler in WSL2 that has issues when RAM is low on the host Windows OS.&lt;/p>
+&lt;p>I don&amp;rsquo;t think it&amp;rsquo;s a simple OOM killer, because there&amp;rsquo;s nothing showing up in systemd logs, and on the Windows side, you only get logs about how Hyper-V workers got killed.&lt;/p>
+&lt;p>Why, on the other hand, could &lt;code>-j16&lt;/code> work and &lt;code>-j32&lt;/code> not, even after the huge pagefiles were added to Windows?&lt;/p>
+&lt;p>Perhaps the I/O scheduler is CPU-bound and it times out. I wish there were better logs so I could look deeper into it.&lt;/p>
+&lt;h1 id="so-how-do-i-get-over-this-tldr">So how do I get over this? (TLDR)&lt;/h1>
+&lt;p>Well, the general rule of thumb that seems to work is:&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>Give your VM as much RAM as possible, and also allocate quite a bit of SWAP to it, so it doesn&amp;rsquo;t die from OOM.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Then, to fix the WSL crashing issue, make sure to have very large pagefiles on the Windows side.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>In my case, I added 256GB, but you could probably get away with 64GB for Chromium.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>And lastly, don&amp;rsquo;t use all your CPU threads when compiling, or WSL will die on you. I used half of them, but you can probably use 2/3 just fine.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>And if you are curious, compiling Chromium on a 13900KF, in WSL2, takes &lt;code>1 hour and 6 minutes&lt;/code>, extrapolating from the &lt;code>-j16&lt;/code> timings.&lt;/p></content></item><item><title>Critical Alert - Tech Industry Must Act on Job Market Chaos!</title><link>/posts/jobhunting/</link><pubDate>Wed, 10 Jan 2024 12:31:42 +0000</pubDate><guid>/posts/jobhunting/</guid><description>Applying to a job is a broken system This blog post is a call to action, urging reform in the tech recruitment process. It&amp;rsquo;s a shared struggle, demanding change for a more efficient and promising future in our industry.
 Being genuine is not encouraged In the tech recruiting scene, a significant emphasis is placed on writing personalized cover letters. However, these letters, requiring genuine and thoughtful effort, are time-intensive to compose, sometimes demanding as much time as a full-time job, just for a chance at being noticed.</description><content>&lt;h1 id="applying-to-a-job-is-a-broken-system">Applying to a job is a broken system&lt;/h1>
 &lt;p>This blog post is a call to action, urging reform in the tech recruitment process. It&amp;rsquo;s a shared struggle, demanding change for a more efficient and promising future in our industry.&lt;/p>
 &lt;h4 id="being-genuine-is-not-encouraged">Being genuine is not encouraged&lt;/h4>

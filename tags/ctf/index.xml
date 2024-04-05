@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ctf on The Tymscar Blog</title><link>/tags/ctf/</link><description>Recent content in ctf on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 31 Oct 2021 18:12:13 +0100</lastBuildDate><atom:link href="/tags/ctf/index.xml" rel="self" type="application/rss+xml"/><item><title>Hack The Midlands CTF 2021</title><link>/posts/hackthemidlandsctf2021/</link><pubDate>Sun, 31 Oct 2021 18:12:13 +0100</pubDate><guid>/posts/hackthemidlandsctf2021/</guid><description>HackTheMidlands is a 24-hour hackathon, or “creative marathon”, which was founded in 2016. I used to participate back in the day, and I&amp;rsquo;ve even won a prize before, here you can find a video about it! 📷
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Ctf on The Tymscar Blog</title><link>/tags/ctf/</link><description>Recent content in Ctf on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 31 Oct 2021 18:12:13 +0100</lastBuildDate><atom:link href="/tags/ctf/index.xml" rel="self" type="application/rss+xml"/><item><title>Hack The Midlands CTF 2021</title><link>/posts/hackthemidlandsctf2021/</link><pubDate>Sun, 31 Oct 2021 18:12:13 +0100</pubDate><guid>/posts/hackthemidlandsctf2021/</guid><description>HackTheMidlands is a 24-hour hackathon, or “creative marathon”, which was founded in 2016. I used to participate back in the day, and I&amp;rsquo;ve even won a prize before, here you can find a video about it! 📷
 CTFs🏁: Being a programmer at heart I&amp;rsquo;ve never played seriously with capture the flag challenges before, but because I am busy with work I did not have the time and energy to participate in the coding part of the hackathon, so I thought I&amp;rsquo;ll give the CTF a try!</description><content>&lt;p>&lt;a href="https://hackthemidlands.com/">HackTheMidlands&lt;/a> is a 24-hour hackathon, or “creative marathon”, which was founded in 2016.
 I used to participate back in the day, and I&amp;rsquo;ve even won a prize before, &lt;a href="https://www.youtube.com/watch?v=mvLXkCgsXik">here&lt;/a> you can find a video about it! 📷&lt;/p>
 &lt;h3 id="ctfs">CTFs🏁:&lt;/h3>
@@ -10,14 +10,14 @@ I used to participate back in the day, and I&amp;rsquo;ve even won a prize befor
 &lt;p>Description:&lt;/p>
 &lt;pre tabindex="0">&lt;code>There&amp;#39;s something about this image that is more than meets the eye.
 &lt;/code>&lt;/pre>&lt;p>Attached to this was an image:
-&lt;img src="/htm-2021/findme.png" alt="findMe">&lt;/p>
+&lt;img alt="findMe" src="/htm-2021/findme.png">&lt;/p>
 &lt;p>Photography is one of my most loved hobbies so I knew this had to be one of three things.&lt;/p>
 &lt;ol>
 &lt;li>There was something hidden in the text when you open up the image as a text file. This was not it. The file looked like gibberish with no sight of the flag:
-&lt;img src="/htm-2021/findMeGibberish.png" alt="findMeGibberish">&lt;/li>
+&lt;img alt="findMeGibberish" src="/htm-2021/findMeGibberish.png">&lt;/li>
 &lt;li>Sometimes when you adjust the file&amp;rsquo;s brightness or contrast you can see some hidden text. This was unlikely to be the case because then you would have to type the CTF flag manually. I tried it regardless without any success.&lt;/li>
 &lt;li>The file had some &lt;a href="https://en.wikipedia.org/wiki/Exif">EXIF&lt;/a> data about it. I went to an online &lt;a href="http://metapicz.com/#landing">EXIF viewer&lt;/a> and lo and behold, the flag &lt;code>HTM{EXIF_GRABBED}&lt;/code> was there:
-&lt;img src="/htm-2021/findMeExif.png" alt="findMeExif">&lt;/li>
+&lt;img alt="findMeExif" src="/htm-2021/findMeExif.png">&lt;/li>
 &lt;/ol>
 &lt;h1 id="challenge-2-pingit-5pt">Challenge #2: PingIT (5pt)&lt;/h1>
 &lt;p>Description:&lt;/p>
@@ -25,11 +25,11 @@ I used to participate back in the day, and I&amp;rsquo;ve even won a prize befor
 Can you find any vulnerabilities with this?
 **Note, any flags are located in /home/cmnatic/ with the formatting of HTM{}**
 &lt;/code>&lt;/pre>&lt;p>This is what the website looked like upon visiting it:&lt;/p>
-&lt;p>&lt;img src="/htm-2021/pingitsite.png" alt="pingitsite">&lt;/p>
+&lt;p>&lt;img alt="pingitsite" src="/htm-2021/pingitsite.png">&lt;/p>
 &lt;p>It`s quite clear that the website takes the user input and passes it to the ping command directly, something like this:&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>ping 127.0.0.1
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In &lt;code>bash&lt;/code> if you want to run two commands one after the other, you can use the &lt;code>;&lt;/code> sign between them. So I tried to run &lt;code>uname&lt;/code> which should return the kernel name I am running on that machine. And it did!&lt;/p>
-&lt;p>&lt;img src="/htm-2021/pingmeuname.png" alt="pingmeuname">&lt;/p>
+&lt;p>&lt;img alt="pingmeuname" src="/htm-2021/pingmeuname.png">&lt;/p>
 &lt;p>It says in the description that the flag is located in &lt;code>/home/cmnatic&lt;/code>. I just don&amp;rsquo;t know what the name of the file is, so I ran&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>1; ls /home/cmnatic
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>And the server told me that the file is called &lt;code>flag.txt&lt;/code>. Should`ve known&amp;hellip;
@@ -79,11 +79,11 @@ Find the vulnerability on their site to answer the flag.
 **Note, flags for this are with the formatting of HTM{}**
 and are located in a users home directory
 &lt;/code>&lt;/pre>&lt;p>This is what the website looked like upon visiting it:&lt;/p>
-&lt;p>&lt;img src="/htm-2021/coolbookingsinital.png" alt="coolbookingsinital">&lt;/p>
+&lt;p>&lt;img alt="coolbookingsinital" src="/htm-2021/coolbookingsinital.png">&lt;/p>
 &lt;p>The first thing I noticed instantly while playing with the webpage was that when I went to the &lt;code>about&lt;/code> page, it would not load, but instead, it would error at the bottom of the page:
-&lt;img src="/htm-2021/coolbookingserror.png" alt="coolbookingserror">&lt;/p>
+&lt;img alt="coolbookingserror" src="/htm-2021/coolbookingserror.png">&lt;/p>
 &lt;p>The error had a full path to where the page should&amp;rsquo;ve been &lt;code>/opt/web/about.html&lt;/code>. Does this mean we can just change the URL and relatively go back to root and then climb back up to the location of where the flag was in &lt;code>Challenge 2&lt;/code>? Let&amp;rsquo;s try: &lt;code>{dockerinstanceURL}/home?page=../../../home/cmnatic/flag.txt&lt;/code>
-&lt;img src="/htm-2021/coolbookingssuccess.png" alt="coolbookingssuccess">&lt;/p>
+&lt;img alt="coolbookingssuccess" src="/htm-2021/coolbookingssuccess.png">&lt;/p>
 &lt;p>What do you know? We found the flag: &lt;code>HTM{INJECTION_SUCCESS}&lt;/code>!&lt;/p>
 &lt;h1 id="challenge-5-deep-dive-15pt">Challenge #5: Deep Dive (15pt)&lt;/h1>
 &lt;p>Description:&lt;/p>
@@ -93,7 +93,7 @@ Note, any flags are located in /home/cmnatic/ with the formatting of HTM{}
 &lt;/code>&lt;/pre>&lt;p>Attached we have a zip file, with a docker project inside. Normally, I would&amp;rsquo;ve tried to run the docker file and see where it would take me, but a simple&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>grep -rni &lt;span style="color:#e6db74">&amp;#34;HTM{.*}&amp;#34;&lt;/span> *
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>returned me the flag &lt;code>HTM{DOCKER_DIVE}&lt;/code> so I was happy enough:
-&lt;img src="/htm-2021/deepdive.png" alt="deepdive">&lt;/p>
+&lt;img alt="deepdive" src="/htm-2021/deepdive.png">&lt;/p>
 &lt;h1 id="challenge-6-flag-checker-10pt">Challenge #6: Flag Checker (10pt)&lt;/h1>
 &lt;p>Description:&lt;/p>
 &lt;pre tabindex="0">&lt;code>The lazy developer has left this broken file behind.
@@ -112,7 +112,7 @@ The first thing I did was try to see what kind of file it is:&lt;/p>
 Can you help here?
 I hear the address book contains more then just contact details!
 &lt;/code>&lt;/pre>&lt;p>This is what the website looked like upon visiting it and searching for the person hinted in the description:&lt;/p>
-&lt;p>&lt;img src="/htm-2021/addressbook.png" alt="addressbook">&lt;/p>
+&lt;p>&lt;img alt="addressbook" src="/htm-2021/addressbook.png">&lt;/p>
 &lt;p>Searching for any other random name did not yield any results. I knew this was accessing data inside of some sort of database, so I tried my hand at doing an SQL injection attack.
 My train of thought was that because this is a simple docker instance it might just use SQLite. If it does it should respond to &lt;code>sqlite_version()&lt;/code> with the version it has, if it doesn&amp;rsquo;t, then I could try other variants of SQL and their specific commands.&lt;/p>
 &lt;p>But how would I be able to run that?
@@ -124,7 +124,7 @@ Well, I could assume that the SQL command on the backend looks something like th
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-sql" data-lang="sql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">select&lt;/span> &lt;span style="color:#f92672">*&lt;/span> &lt;span style="color:#66d9ef">from&lt;/span> sometablethatIdontknow &lt;span style="color:#66d9ef">where&lt;/span> name&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;blahblah&amp;#39;&lt;/span> &lt;span style="color:#66d9ef">AND&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span>&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">2&lt;/span> &lt;span style="color:#66d9ef">UNION&lt;/span> &lt;span style="color:#66d9ef">SELECT&lt;/span> sqlite_version(), &lt;span style="color:#ae81ff">1&lt;/span>, &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#75715e">--&amp;#39;
 &lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The other 2 &lt;code>1&lt;/code>&amp;rsquo;s there I need just to be able to fully populate the table on the website which needs 3 elements in total.&lt;/p>
 &lt;p>I got lucky! The database was in fact an SQLite database and it returned its version:
-&lt;img src="/htm-2021/addressbookversion.png" alt="addressbookversion">&lt;/p>
+&lt;img alt="addressbookversion" src="/htm-2021/addressbookversion.png">&lt;/p>
 &lt;p>Now that we know what database there is, I can always query all the table names. To do that in SQL, my input became:&lt;/p>
 &lt;pre tabindex="0">&lt;code>blahblah&amp;#39; AND 1=2 UNION SELECT name, 1, 1 FROM sqlite_master WHERE type = &amp;#34;table&amp;#34; --
 &lt;/code>&lt;/pre>&lt;p>which in turn on the backend side looked something like:&lt;/p>
@@ -134,7 +134,7 @@ Well, I could assume that the SQL command on the backend looks something like th
 &lt;/code>&lt;/pre>&lt;p>which then in turn on the backend side would look like:&lt;/p>
 &lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-sql" data-lang="sql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">select&lt;/span> &lt;span style="color:#f92672">*&lt;/span> &lt;span style="color:#66d9ef">from&lt;/span> addressbook &lt;span style="color:#66d9ef">where&lt;/span> name&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;blahblah&amp;#39;&lt;/span> &lt;span style="color:#66d9ef">AND&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span>&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#ae81ff">2&lt;/span> &lt;span style="color:#66d9ef">UNION&lt;/span> &lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">*&lt;/span>, &lt;span style="color:#ae81ff">1&lt;/span>, &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> flag&lt;span style="color:#75715e">--&amp;#39;
 &lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>That was it! The flag, &lt;code>HTM{ADDRESS_BOOK_INJECTION}&lt;/code> was mine!
-&lt;img src="/htm-2021/addressbookflag.png" alt="addressbookflag">&lt;/p>
+&lt;img alt="addressbookflag" src="/htm-2021/addressbookflag.png">&lt;/p>
 &lt;h1 id="in-conclusion">In conclusion&lt;/h1>
 &lt;p>I enjoyed these challenges very much! The last one was especially hard because I had to poke around with SQL injection about which I heard before but I&amp;rsquo;ve never done myself.
 The best advice I could give to anybody that wants to try some of these is just &lt;code>go for it&lt;/code> and don&amp;rsquo;t be afraid to Google everything you don`t understand. After all, it is a great learning experience!&lt;/p>

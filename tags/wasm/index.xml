@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Wasm on The Tymscar Blog</title><link>/tags/wasm/</link><description>Recent content in Wasm on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Thu, 04 Apr 2024 12:00:00 +0000</lastBuildDate><atom:link href="/tags/wasm/index.xml" rel="self" type="application/rss+xml"/><item><title>Simulating soapy water</title><link>/posts/soapsim/</link><pubDate>Thu, 04 Apr 2024 12:00:00 +0000</pubDate><guid>/posts/soapsim/</guid><description>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?
+No, just me? Well perhaps this blogpost isn&amp;rsquo;t for you then. Otherwise, buckle up!
+The experiment that caught my eye this time around was this video of a plate of water, with some pepper sprinkled on top uniformly, that when touched with a soapy finger, makes the pepper repel.</description><content>&lt;p>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?&lt;/p>
+&lt;p>No, just me? Well perhaps this blogpost isn&amp;rsquo;t for you then. Otherwise, buckle up!&lt;/p>
+&lt;p>The experiment that caught my eye this time around was this video of a plate of water, with some pepper sprinkled on top uniformly, that when touched with a soapy finger, makes the pepper repel.&lt;/p>
+&lt;div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+&lt;iframe src="https://www.youtube.com/embed/ho0o7H6dXSU" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" allowfullscreen title="YouTube Video">&lt;/iframe>
+&lt;/div>
+&lt;p>Now obviously coding a whole fluid simulation with particles and forces was too much to do just for a silly visualization, so I decided on writing a simple force repellent simulation in Javascript.&lt;/p>
+&lt;p>I quickly then noticed that the performance, while manageable, wasn&amp;rsquo;t fantastic, so I ended up writing the core logic again in Rust, and embedding it onto the page with WASM. This was quite a lot of fun, and the end result was a simulation more than twice as fast.&lt;/p>
+&lt;p>Now instead of just showing you the Rust one, I decided on making them interactive, with an FPS counter, and have them both be runnable in your browser. Make sure to pause the one you&amp;rsquo;re not using at the time, so you can correctly assess the FPS differences!&lt;/p>
+&lt;h1 id="soap-sim-in-js">Soap sim in JS&lt;/h1>
+&lt;script type="module" src="/soap-sim/index-js.js">&lt;/script>
+&lt;div id="js-canvas-container" style="display: flex; justify-content: center; align-items: center; ">
+&lt;canvas id="js-canvas" style="width: 100%; height: auto;">
+Your browser does not support the canvas element.
+&lt;/canvas>
+&lt;/div>
+&lt;div style="display: flex; justify-content: space-around; align-items: center; padding-top: 1em ">
+&lt;button id="js-simulate-button">Toggle JS simulation&lt;/button>
+&lt;button id="js-reset-button">Reset JS simulation&lt;/button>
+&lt;/div>
+&lt;h1 id="soap-sim-in-wasm-rust">Soap sim in WASM (Rust)&lt;/h1>
+&lt;script type="module" src="/soap-sim/index-wasm.js">&lt;/script>
+&lt;div id="wasm-canvas-container" style="display: flex; justify-content: center; align-items: center; ">
+&lt;canvas id="wasm-canvas" style="width: 100%; height: auto;">
+Your browser does not support the canvas element.
+&lt;/canvas>
+&lt;/div>
+&lt;div style="display: flex; justify-content: space-around; align-items: center; padding-top: 1em ">
+&lt;button id="wasm-simulate-button">Toggle WASM simulation&lt;/button>
+&lt;button id="wasm-reset-button">Reset WASM simulation&lt;/button>
+&lt;/div>
+&lt;h2 id="lessons-learned-during-this">Lessons learned during this&lt;/h2>
+&lt;p>When I first started working on the Rust WASM version, I initially expected a much bigger speedup, however after performance profiling the code, I learned that most of the work was not done by the logic in Javascript, but rather by the interaction with the DOM itself.
+Because at the time of writing, there is no direct way from WASM (be it Rust, or your favourite language that can deploy to WASM) to interact with the DOM, it all has to go through Javascript. This meant that for my usecase at best (read as &lt;code>never&lt;/code>) my Rust code would be as fast as Javascript while interacting with the DOM.&lt;/p>
+&lt;p>Now the second kicker: how do you tell Javascript where the grains of pepper are in your simulation? For me this is what my simulation State looked like in Rust:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-rust" data-lang="rust">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">#[wasm_bindgen]&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">pub&lt;/span> &lt;span style="color:#66d9ef">struct&lt;/span> &lt;span style="color:#a6e22e">State&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> circles: Vec&lt;span style="color:#f92672">&amp;lt;&lt;/span>Entity&lt;span style="color:#f92672">&amp;gt;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> soaps: Vec&lt;span style="color:#f92672">&amp;lt;&lt;/span>Entity&lt;span style="color:#f92672">&amp;gt;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> canvas_size: &lt;span style="color:#66d9ef">f64&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> circle_size: &lt;span style="color:#66d9ef">f64&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> repulsion_strength: &lt;span style="color:#66d9ef">f64&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> positions: &lt;span style="color:#a6e22e">Rc&lt;/span>&lt;span style="color:#f92672">&amp;lt;&lt;/span>RefCell&lt;span style="color:#f92672">&amp;lt;&lt;/span>Vec&lt;span style="color:#f92672">&amp;lt;&lt;/span>&lt;span style="color:#66d9ef">f64&lt;/span>&lt;span style="color:#f92672">&amp;gt;&amp;gt;&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Things like where the soap spots are, while being costly to transmit, are only done so maybe a couple of times over the whole lifespan of the simulation, whereas the thousands of pepper positions would need to jump from WASM to Javascript tens of times a second. So what gives? Well I ended up doing something I didn&amp;rsquo;t know was possible in WASM before this, and that was sending over a pointer. Here is the Rust side:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-rust" data-lang="rust">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">#[wasm_bindgen]&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">impl&lt;/span> State {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// other stuff...
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">pub&lt;/span> &lt;span style="color:#66d9ef">fn&lt;/span> &lt;span style="color:#a6e22e">get_positions_ptr&lt;/span>(&lt;span style="color:#f92672">&amp;amp;&lt;/span>self) -&amp;gt; &lt;span style="color:#f92672">*&lt;/span>&lt;span style="color:#66d9ef">const&lt;/span> &lt;span style="color:#66d9ef">f64&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> self.positions.borrow().as_ptr()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>On the Javascript side then I would have to get the positions pointer from WASM, and then make a view into said array like this:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-js" data-lang="js">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">const&lt;/span> &lt;span style="color:#a6e22e">positionsPtr&lt;/span> &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">wasmState&lt;/span>.&lt;span style="color:#a6e22e">get_positions_ptr&lt;/span>();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">const&lt;/span> &lt;span style="color:#a6e22e">positions&lt;/span> &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">new&lt;/span> &lt;span style="color:#a6e22e">Float64Array&lt;/span>(&lt;span style="color:#a6e22e">wasmModule&lt;/span>.&lt;span style="color:#a6e22e">memory&lt;/span>.&lt;span style="color:#a6e22e">buffer&lt;/span>, &lt;span style="color:#a6e22e">positionsPtr&lt;/span>, &lt;span style="color:#a6e22e">numOfCircles&lt;/span> &lt;span style="color:#f92672">*&lt;/span> &lt;span style="color:#ae81ff">2&lt;/span>);
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>I find it interesting that we basically use the pointer as an offset in the buffer, and we tell it how long it is so we can have a mapping. From here on out, if I were to interact with the array on the Javascript side, it would modify it on the Rust side too!&lt;/p>
+&lt;p>Just to give an example of interaction from the other side, Javascript-&amp;gt;Rust, here is how the state finds out about the new soap spots when the user taps/clicks on the screen. In Rust we have a receiver function:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-rust" data-lang="rust">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">#[wasm_bindgen]&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">impl&lt;/span> State {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// other stuff...
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">pub&lt;/span> &lt;span style="color:#66d9ef">fn&lt;/span> &lt;span style="color:#a6e22e">add_soap&lt;/span>(&lt;span style="color:#f92672">&amp;amp;&lt;/span>&lt;span style="color:#66d9ef">mut&lt;/span> self, x: &lt;span style="color:#66d9ef">f64&lt;/span>, y: &lt;span style="color:#66d9ef">f64&lt;/span>) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> self.soaps.push(Entity::new(x, y, &lt;span style="color:#ae81ff">0.0&lt;/span>, &lt;span style="color:#ae81ff">0.0&lt;/span>));
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>And then on the Javascript side we have this:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-js" data-lang="js">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">const&lt;/span> &lt;span style="color:#a6e22e">handleTap&lt;/span> &lt;span style="color:#f92672">=&lt;/span> (&lt;span style="color:#a6e22e">event&lt;/span>) =&amp;gt; {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">const&lt;/span> &lt;span style="color:#a6e22e">canvas&lt;/span> &lt;span style="color:#f92672">=&lt;/span> document.&lt;span style="color:#a6e22e">getElementById&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;wasm-canvas&amp;#39;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">const&lt;/span> &lt;span style="color:#a6e22e">mousePos&lt;/span> &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">getTapPos&lt;/span>(&lt;span style="color:#a6e22e">canvas&lt;/span>, &lt;span style="color:#a6e22e">event&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">wasmState&lt;/span>.&lt;span style="color:#a6e22e">add_soap&lt;/span>(&lt;span style="color:#a6e22e">mousePos&lt;/span>.&lt;span style="color:#a6e22e">x&lt;/span>, &lt;span style="color:#a6e22e">mousePos&lt;/span>.&lt;span style="color:#a6e22e">y&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="i-should-do-this-more-often">I should do this more often&lt;/h3>
+&lt;p>I had a lot of fun working on this and now I can&amp;rsquo;t help but wait for the day when WASM has full control over the DOM, imagine the performance!&lt;/p>
+&lt;p>This project has been a great learning experience, and it&amp;rsquo;s always satisfying to see the final result come to life. I encourage you to take on similar challenges and explore new approaches to coding. Who knows, you might just discover a whole new way of thinking about a problem!&lt;/p>
+&lt;p>Until next time, happy coding!&lt;/p></content></item></channel></rss>

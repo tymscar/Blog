@@ -1,7 +1,8 @@
 baseUrl: /
 languageCode: en-us
 theme: terminal
-paginate: 5
+pagination:
+  pagerSize: 5
 
 
 params:
@@ -31,13 +32,14 @@ languages:
   en:
     languageName: English
     title: The Tymscar Blog
-    subtitle: brain > /dev/brain
-    keywords: 'blog tech brain programming nerd linux unix'
-    menuMore: Show more
-    readMore: Read more
-    readOtherPosts: Read other posts
 
     params:
+      subtitle: brain > /dev/brain
+      keywords: "blog tech brain programming nerd linux unix"
+      menuMore: Show more
+      readMore: Read more
+      readOtherPosts: Read other posts
+
       logo:
         logoText: Tymscar
         logoHomeLink: /

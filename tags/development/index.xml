@@ -1,38 +1,228 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Development on The Tymscar Blog</title><link>/tags/development/</link><description>Recent content in Development on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 21 Apr 2024 12:00:00 +0000</lastBuildDate><atom:link href="/tags/development/index.xml" rel="self" type="application/rss+xml"/><item><title>I wrote my Vision Pro killer app (Script Anchor)</title><link>/posts/scriptanchor/</link><pubDate>Sun, 21 Apr 2024 12:00:00 +0000</pubDate><guid>/posts/scriptanchor/</guid><description>I&amp;rsquo;ve always like VR For 15 years, I&amp;rsquo;ve been captivated by the possibilities of VR/AR. It all became real when I held my first Google Cardboard at Google I/O 2015—here&amp;rsquo;s the moment captured:
-My professional and personal life has been deeply intertwined with virtual reality. I spent five fulfilling years harnessing VR&amp;rsquo;s potential at JLR, and for my Bachelor of Science First Class Honours degree at BCU, I pioneered an augmented reality project that allowed users to overlay virtual attractions onto the real world.</description><content>&lt;h1 id="ive-always-like-vr">I&amp;rsquo;ve always like VR&lt;/h1>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Development on The Tymscar Blog</title><link>/tags/development/</link><description>Recent content in Development on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Fri, 02 May 2025 16:50:41 +0000</lastBuildDate><atom:link href="/tags/development/index.xml" rel="self" type="application/rss+xml"/><item><title>Using Nix to build JS/TS projects with private dependencies</title><link>/posts/nixprivatenpmrepos/</link><pubDate>Fri, 02 May 2025 16:50:41 +0000</pubDate><guid>/posts/nixprivatenpmrepos/</guid><description>&lt;p>&lt;img src="/nix-private-npm-repos/githubActioonsSuccess.png" alt="“Running code from a private repo”)">&lt;/p>
+&lt;p>Nix is a great tool for building software, especially in professional settings because of the guarantees it comes with.&lt;br>
+For example, you can be sure that the software you build is reproducible and that it will work on any machine.&lt;/p>
+&lt;p>When it comes to building packages in the Nix world, you usually end up going with derivation builders already made for you.&lt;/p>
+&lt;p>For Rust there is &lt;code>rustPlatform.buildRustPackage&lt;/code>, for Go there is &lt;code>go2nix&lt;/code>, for JS/TS there is &lt;code>node2nix&lt;/code>, and so on.&lt;/p></description><content>&lt;p>&lt;img src="/nix-private-npm-repos/githubActioonsSuccess.png" alt="“Running code from a private repo”)">&lt;/p>
+&lt;p>Nix is a great tool for building software, especially in professional settings because of the guarantees it comes with.&lt;br>
+For example, you can be sure that the software you build is reproducible and that it will work on any machine.&lt;/p>
+&lt;p>When it comes to building packages in the Nix world, you usually end up going with derivation builders already made for you.&lt;/p>
+&lt;p>For Rust there is &lt;code>rustPlatform.buildRustPackage&lt;/code>, for Go there is &lt;code>go2nix&lt;/code>, for JS/TS there is &lt;code>node2nix&lt;/code>, and so on.&lt;/p>
+&lt;h2 id="so-what-is-the-problem-just-use-node2nix">So what is the problem? Just use &lt;code>node2nix&lt;/code>!&lt;/h2>
+&lt;p>Well, I wish it were that easy. The problem arises when you try to use private dependencies in your project, and this is not a niche issue at all.&lt;/p>
+&lt;p>In fact, if the project your company works on is not fully open-source, you are most likely using private dependencies too.&lt;/p>
+&lt;p>What makes that a problem is that for &lt;code>node2nix&lt;/code> to be able to build your project &lt;em>and&lt;/em> be pure, it needs to download the dependencies at build-time, store them in the Nix store, and make them available to the build process.&lt;br>
+So at first I thought all I had to do was provide my secret token to &lt;code>node2nix&lt;/code> and it would be able to download the dependencies.&lt;/p>
+&lt;p>But how do you do that? One way would be to set an environment variable with the token in it and then use that in your &lt;code>package.json&lt;/code> file.&lt;br>
+That would be &lt;em>impure&lt;/em>, because the build process would depend on the environment variable being set.&lt;/p>
+&lt;p>Another way—the one I ended up going with—was to use a &lt;code>.yarnrc.yml&lt;/code> file and set the token there. For testing I hosted a &lt;a href="https://verdaccio.org/">Verdaccio&lt;/a> instance in my homelab, created a user, created a private package, and populated my &lt;code>.yarnrc.yml&lt;/code> file like this:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">nodeLinker&lt;/span>: &lt;span style="color:#ae81ff">node-modules&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">npmScopes&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selfhosted&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">npmAlwaysAuth&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">npmAuthIdent&lt;/span>: &lt;span style="color:#ae81ff">tymscar:ultraSecretPassword&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">npmRegistryServer&lt;/span>: &lt;span style="color:#ae81ff">https://verdaccio.tymscar.com&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Don&amp;rsquo;t worry. The server has been taken down after the CI went green in the demo repository!&lt;/p>
+&lt;p>Now whenever I ran &lt;code>yarn install&lt;/code> it correctly downloaded my private package from the registry, defined in my &lt;code>package.json&lt;/code> file like this:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-json" data-lang="json">&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;name&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;supernixtest&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;version&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;1.0.1&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;main&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;index.js&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;license&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;MIT&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;type&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;module&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;dependencies&amp;#34;&lt;/span>: {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;@selfhosted/tymscartest1&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;1.1.2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Notice the &lt;code>@selfhosted&lt;/code> scope. This is the same one defined in my &lt;code>.yarnrc.yml&lt;/code> file.&lt;/p>
+&lt;h2 id="cool-does-it-work-in-nix-now">Cool! Does it work in Nix now?&lt;/h2>
+&lt;p>Well, it does if I commit this file to my repo, yes, but that would mean my public repo will contain my private registry token.&lt;/p>
+&lt;p>I remembered that &lt;a href="https://github.com/Jadarma/advent-of-code-kotlin-solutions/">a friend of mine&lt;/a> used &lt;strong>git-crypt&lt;/strong> to encrypt his Advent of Code input files, so I gave that a go and it worked. I installed git-crypt and added this to my &lt;code>.gitattributes&lt;/code> file:&lt;/p>
+&lt;pre tabindex="0">&lt;code class="language-gitattributes" data-lang="gitattributes">.yarnrc.yml filter=git-crypt diff=git-crypt
+&lt;/code>&lt;/pre>&lt;h3 id="cicd-workflow">CI/CD workflow&lt;/h3>
+&lt;p>&lt;img src="/nix-private-npm-repos/githubActions.png" alt="Github Actions">&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">CI Pipeline&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">on&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">push&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">branches&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">main&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">jobs&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">build&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runs-on&lt;/span>: &lt;span style="color:#ae81ff">ubuntu-latest&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">steps&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Checkout code&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uses&lt;/span>: &lt;span style="color:#ae81ff">actions/checkout@v2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Unlock secrets&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uses&lt;/span>: &lt;span style="color:#ae81ff">sliteteam/github-action-git-crypt-unlock@1.2.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">env&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">GIT_CRYPT_KEY&lt;/span>: &lt;span style="color:#ae81ff">${{ secrets.GIT_CRYPT_KEY }}&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">uses&lt;/span>: &lt;span style="color:#ae81ff">cachix/install-nix-action@v31&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">with&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">github_access_token&lt;/span>: &lt;span style="color:#ae81ff">${{ secrets.GITHUB_TOKEN }}&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Run nix build&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: &lt;span style="color:#ae81ff">nix build&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Show tree structure of result directory&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> echo &amp;#34;Tree structure of result directory:&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> tree result&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Run the main file (prints a message from the private repo)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> echo &amp;#34;Running the main file...&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> nix run nixpkgs#nodejs -- result/index.js&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>I know, it looks a bit daunting if you&amp;rsquo;ve never done something like this, but in all honesty it&amp;rsquo;s not too bad.&lt;br>
+Basically it downloads the repo, unlocks the secrets, installs Nix, builds the project, and runs it.&lt;br>
+To decrypt the secrets I just had to add &lt;code>GIT_CRYPT_KEY&lt;/code> to my GitHub repository secrets.&lt;/p>
+&lt;h2 id="so-what-is-the-secret-why-did-this-take-me-so-long-to-figure-out">So what is the secret? Why did this take me so long to figure out?&lt;/h2>
+&lt;p>In Nix there are two main kinds of derivations: the normal ones you use every day, and &lt;strong>FODs&lt;/strong>.&lt;/p>
+&lt;p>&lt;strong>FOD&lt;/strong> stands for &lt;em>Fixed-Output Derivation&lt;/em>, and what makes them special is that they, unlike normal derivations, &lt;em>have network access&lt;/em>. They can download files for you (such as private and public dependencies) and then store them in the Nix store, to be used by your normal derivations.&lt;/p>
+&lt;p>Does that mean FODs are not pure? No, actually they are. The only difference—and the way you define FODs—is by adding&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>outputHash &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;YOUR_HASH_HERE&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>to any derivation. That means you &lt;em>know&lt;/em> what the output of the derivation will be, and you can verify that the output is correct.&lt;/p>
+&lt;p>So the way to solve the whole issue is by using two derivations:&lt;/p>
+&lt;ol>
+&lt;li>&lt;strong>One FOD&lt;/strong> that has network access, fetches your dependencies, and stores them in the Nix store.&lt;/li>
+&lt;li>&lt;strong>One normal derivation&lt;/strong> that has access to those stored dependencies and builds your project.&lt;/li>
+&lt;/ol>
+&lt;h3 id="flakenix">&lt;code>flake.nix&lt;/code>&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> description &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;Node.js project with private npm registry support&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> inputs &lt;span style="color:#f92672">=&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> flake-parts&lt;span style="color:#f92672">.&lt;/span>url &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;github:hercules-ci/flake-parts&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nixpkgs&lt;span style="color:#f92672">.&lt;/span>url &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;github:NixOS/nixpkgs/nixos-24.11&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> outputs &lt;span style="color:#f92672">=&lt;/span> { flake-parts&lt;span style="color:#f92672">,&lt;/span> &lt;span style="color:#f92672">...&lt;/span> } &lt;span style="color:#f92672">@&lt;/span> inputs:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> flake-parts&lt;span style="color:#f92672">.&lt;/span>lib&lt;span style="color:#f92672">.&lt;/span>mkFlake { &lt;span style="color:#66d9ef">inherit&lt;/span> inputs; } {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> systems &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;aarch64-darwin&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;x86_64-linux&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> perSystem &lt;span style="color:#f92672">=&lt;/span> { pkgs&lt;span style="color:#f92672">,&lt;/span> &lt;span style="color:#f92672">...&lt;/span> }: &lt;span style="color:#66d9ef">let&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nodeEnv &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> export HOME=&amp;#34;$NIX_BUILD_TOP&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> export YARN_ENABLE_TELEMETRY=0
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn config set enableGlobalCache false
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> supportedArchitecturesJSON &lt;span style="color:#f92672">=&lt;/span> builtins&lt;span style="color:#f92672">.&lt;/span>toJSON {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> os &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;darwin&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;linux&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> cpu &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;arm&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;arm64&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;ia32&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;x64&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> libc &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;glibc&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;musl&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># 1. FOD: fetch dependencies&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> yarnOfflineCache &lt;span style="color:#f92672">=&lt;/span> pkgs&lt;span style="color:#f92672">.&lt;/span>stdenvNoCC&lt;span style="color:#f92672">.&lt;/span>mkDerivation {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> name &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;super-nix-test-deps&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> src &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">./.&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nativeBuildInputs &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">with&lt;/span> pkgs; [ yarn-berry ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> NODE_EXTRA_CA_CERTS &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>pkgs&lt;span style="color:#f92672">.&lt;/span>cacert&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">/etc/ssl/certs/ca-bundle.crt&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> configurePhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook preConfigure
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span>&lt;span style="color:#e6db74">${&lt;/span>nodeEnv&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn config set cacheFolder $out
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn config set supportedArchitectures --json &amp;#39;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>supportedArchitecturesJSON&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook postConfigure
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> buildPhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook preBuild
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn install --immutable --mode skip-build
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook postBuild
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> dontInstall &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">true&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> outputHashAlgo &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;sha256&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> outputHashMode &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;recursive&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> outputHash &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;sha256-WLURUf/xCDOEPOs5jKPAhYfv7Qvy+yxNMMLsq6lLCEQ=&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">in&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># 2. Normal derivation: build the project&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> packages&lt;span style="color:#f92672">.&lt;/span>default &lt;span style="color:#f92672">=&lt;/span> pkgs&lt;span style="color:#f92672">.&lt;/span>stdenv&lt;span style="color:#f92672">.&lt;/span>mkDerivation {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> pname &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;yarn-nix-private-repo-test&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> version &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;0.0.1&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> src &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">./.&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nativeBuildInputs &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">with&lt;/span> pkgs; [ nodejs yarn-berry ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> configurePhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook preConfigure
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span>&lt;span style="color:#e6db74">${&lt;/span>nodeEnv&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn config set cacheFolder &lt;/span>&lt;span style="color:#e6db74">${&lt;/span>yarnOfflineCache&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook postConfigure
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> buildPhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook preBuild
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn install --immutable --immutable-cache
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook postBuild
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> installPhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> mkdir -p $out
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> cp -r . $out/
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Yes, it&amp;rsquo;s quite long and seems daunting, but the main bits you need to understand are:&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>&lt;code>yarnOfflineCache&lt;/code>&lt;/strong> is the FOD that fetches the dependencies and stores them in the Nix store.&lt;/li>
+&lt;li>&lt;strong>&lt;code>packages.default&lt;/code>&lt;/strong> is the derivation that builds your project. It uses the cache via&lt;br>
+&lt;code>yarn config set cacheFolder ${yarnOfflineCache}&lt;/code>.&lt;/li>
+&lt;/ul>
+&lt;h2 id="ok-so-what-do-i-need-to-do-now-if-i-want-to-update-my-dependencies">Ok, so what do I need to do now if I want to update my dependencies?&lt;/h2>
+&lt;p>Quite simple, actually:&lt;/p>
+&lt;ol>
+&lt;li>Work on the project as normal and run &lt;code>yarn install&lt;/code> to update &lt;code>yarn.lock&lt;/code>.&lt;/li>
+&lt;li>Delete the value of &lt;code>outputHash&lt;/code> in the &lt;code>yarnOfflineCache&lt;/code> derivation.&lt;/li>
+&lt;li>Run &lt;code>nix build&lt;/code>. Nix will tell you the new hash—copy it back into &lt;code>outputHash&lt;/code>.&lt;/li>
+&lt;li>Commit the changes. Your colleagues and CI can now run &lt;code>nix build&lt;/code> without issues!&lt;/li>
+&lt;/ol>
+&lt;p>If you want to see the whole project on GitHub, so it&amp;rsquo;s easier to copy-paste, you can find it &lt;a href="https://github.com/tymscar/Nix-Yarn-Private-Repo-Example">here&lt;/a>.&lt;/p>
+&lt;p>Special thanks to &lt;a href="https://github.com/TeamWolfyta">Kieran&lt;/a> for spending a couple of hours with me on a Discord call trying to figure this out. Sorry it took this long to post the solution—it’s been weeks, but the part we were missing was the FOD with the output hash.&lt;/p></content></item><item><title>I wrote my Vision Pro killer app (Script Anchor)</title><link>/posts/scriptanchor/</link><pubDate>Sun, 21 Apr 2024 12:00:00 +0000</pubDate><guid>/posts/scriptanchor/</guid><description>&lt;h1 id="ive-always-like-vr">I&amp;rsquo;ve always like VR&lt;/h1>
 &lt;p>For 15 years, I&amp;rsquo;ve been captivated by the possibilities of VR/AR. It all became real when I held my first Google Cardboard at Google I/O 2015—here&amp;rsquo;s the moment captured:&lt;/p>
-&lt;p>&lt;img alt="My Google Cardboard" src="/script-anchor/google-cardboard.jpg">&lt;/p>
+&lt;p>&lt;img src="/script-anchor/google-cardboard.jpg" alt="My Google Cardboard">&lt;/p>
+&lt;p>My professional and personal life has been deeply intertwined with virtual reality. I spent five fulfilling years harnessing VR&amp;rsquo;s potential at JLR, and for my Bachelor of Science First Class Honours degree at BCU, I pioneered an augmented reality project that allowed users to overlay virtual attractions onto the real world. Even outside of work, I&amp;rsquo;ve remained an avid VR enthusiast, frequently engaging with the best headsets out there, from the industry-celebrated Microsoft Hololens to the impressive capabilities of the less known Pimax 8K.&lt;/p></description><content>&lt;h1 id="ive-always-like-vr">I&amp;rsquo;ve always like VR&lt;/h1>
+&lt;p>For 15 years, I&amp;rsquo;ve been captivated by the possibilities of VR/AR. It all became real when I held my first Google Cardboard at Google I/O 2015—here&amp;rsquo;s the moment captured:&lt;/p>
+&lt;p>&lt;img src="/script-anchor/google-cardboard.jpg" alt="My Google Cardboard">&lt;/p>
 &lt;p>My professional and personal life has been deeply intertwined with virtual reality. I spent five fulfilling years harnessing VR&amp;rsquo;s potential at JLR, and for my Bachelor of Science First Class Honours degree at BCU, I pioneered an augmented reality project that allowed users to overlay virtual attractions onto the real world. Even outside of work, I&amp;rsquo;ve remained an avid VR enthusiast, frequently engaging with the best headsets out there, from the industry-celebrated Microsoft Hololens to the impressive capabilities of the less known Pimax 8K.&lt;/p>
-&lt;p>&lt;img alt="Selfie with the Hololens" src="/script-anchor/selfie-hololens.jpg">&lt;/p>
+&lt;p>&lt;img src="/script-anchor/selfie-hololens.jpg" alt="Selfie with the Hololens">&lt;/p>
 &lt;p>I&amp;rsquo;m sharing this because Script Anchor didn&amp;rsquo;t just appear out of thin air. After nearly a decade immersed in VR and AR, the launch of Apple&amp;rsquo;s Vision Pro left me waiting for that killer app that would speak directly to programmers like myself. That&amp;rsquo;s when I decided to create Script Anchor, potentially &lt;em>the&lt;/em> killer app for the likes of me—tech enthusiasts who code at the cutting edge and value an undisturbed workflow.&lt;/p>
 &lt;h1 id="script-anchor">Script Anchor&lt;/h1>
 &lt;p>Introducing Script Anchor, the spatial computing toolkit for Vision Pro:
 &lt;div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-&lt;iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="allowfullscreen" loading="eager" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/vpUUuARNpEQ?autoplay=0&amp;controls=1&amp;end=0&amp;loop=0&amp;mute=0&amp;start=0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" title="YouTube video"
->&lt;/iframe>
+&lt;iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" loading="eager" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/vpUUuARNpEQ?autoplay=0&amp;amp;controls=1&amp;amp;end=0&amp;amp;loop=0&amp;amp;mute=0&amp;amp;start=0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" title="YouTube video">&lt;/iframe>
 &lt;/div>
 &lt;/p>
 &lt;p>The Mac Virtual Display of the Vision Pro is impressive, but its single-screen projection fell short for someone accustomed to a multi-screen setup. For me, flipping back and forth to check a log or send a quick GET request was more than an annoyance—it was a flow-breaker.&lt;/p>
-&lt;p>&lt;img alt="Programming flow" src="https://www.monkeyuser.com/2018/focus/79-focus.png">&lt;/p>
+&lt;p>&lt;img src="https://www.monkeyuser.com/2018/focus/79-focus.png" alt="Programming flow">&lt;/p>
 &lt;p>Here&amp;rsquo;s how Script Anchor addresses this:&lt;/p>
 &lt;ol>
 &lt;li>A floating SSH window that&amp;rsquo;s always in view, whether you&amp;rsquo;re coding on a Mac or Linux machine. You can keep an eye on &lt;code>htop&lt;/code>, or swap in any command output—be it logs from a Kotlin Ktor app, Docker, or kernel messages while crafting a Linux driver.
-&lt;img alt="Htop running in Script Anchor" src="/script-anchor/htop.png">&lt;/li>
+&lt;img src="/script-anchor/htop.png" alt="Htop running in Script Anchor">&lt;/li>
 &lt;li>The ability to execute HTTP requests without the need to switch to Postman or cycle through terminal history with &amp;lsquo;↑&amp;rsquo; and &amp;lsquo;⏎&amp;rsquo;. It&amp;rsquo;s designed for those times when you&amp;rsquo;re deep in development and any deviation is a distraction.
-&lt;img alt="HTTP Requests in Script Anchor" src="/script-anchor/http.png">&lt;/li>
+&lt;img src="/script-anchor/http.png" alt="HTTP Requests in Script Anchor">&lt;/li>
 &lt;li>Direct control over Home Assistant lights from the interface—I can&amp;rsquo;t count how many times reaching for my phone to tweak the lighting has disrupted my coding rhythm. With Script Anchor, it&amp;rsquo;s a disruption of the past.
-&lt;img alt="Controlling Home Assistant from Script Anchor" src="/script-anchor/home-assistant.png">&lt;/li>
+&lt;img src="/script-anchor/home-assistant.png" alt="Controlling Home Assistant from Script Anchor">&lt;/li>
 &lt;/ol>
 &lt;p>Script Anchor is more labor-intensive than I initially thought, yet the fundamental rule I&amp;rsquo;ve embraced is to launch functional features that can immediately enhance someone&amp;rsquo;s workflow and evolve over time. The ability to add scriptable buttons for quick commands in SSH windows is already on the horizon.&lt;/p>
 &lt;p>You can get Script Anchor in the App Store as of &lt;code>TODAY&lt;/code>. For details and links, head over to the dedicated website at &lt;a href="https://scriptanchor.app">https://scriptanchor.app&lt;/a>.&lt;/p>
-&lt;p>See you in the coding zone!&lt;/p></content></item><item><title>Simulating soapy water</title><link>/posts/soapsim/</link><pubDate>Thu, 04 Apr 2024 12:00:00 +0000</pubDate><guid>/posts/soapsim/</guid><description>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?
-No, just me? Well perhaps this blogpost isn&amp;rsquo;t for you then. Otherwise, buckle up!
-The experiment that caught my eye this time around was this video of a plate of water, with some pepper sprinkled on top uniformly, that when touched with a soapy finger, makes the pepper repel.</description><content>&lt;p>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?&lt;/p>
+&lt;p>See you in the coding zone!&lt;/p></content></item><item><title>Simulating soapy water</title><link>/posts/soapsim/</link><pubDate>Thu, 04 Apr 2024 12:00:00 +0000</pubDate><guid>/posts/soapsim/</guid><description>&lt;p>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?&lt;/p>
+&lt;p>No, just me? Well perhaps this blogpost isn&amp;rsquo;t for you then. Otherwise, buckle up!&lt;/p>
+&lt;p>The experiment that caught my eye this time around was this video of a plate of water, with some pepper sprinkled on top uniformly, that when touched with a soapy finger, makes the pepper repel.&lt;/p></description><content>&lt;p>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?&lt;/p>
 &lt;p>No, just me? Well perhaps this blogpost isn&amp;rsquo;t for you then. Otherwise, buckle up!&lt;/p>
 &lt;p>The experiment that caught my eye this time around was this video of a plate of water, with some pepper sprinkled on top uniformly, that when touched with a soapy finger, makes the pepper repel.&lt;/p>
 &lt;div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-&lt;iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="allowfullscreen" loading="eager" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/ho0o7H6dXSU?autoplay=0&amp;controls=1&amp;end=0&amp;loop=0&amp;mute=0&amp;start=0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" title="YouTube video"
->&lt;/iframe>
+&lt;iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" loading="eager" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/ho0o7H6dXSU?autoplay=0&amp;amp;controls=1&amp;amp;end=0&amp;amp;loop=0&amp;amp;mute=0&amp;amp;start=0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" title="YouTube video">&lt;/iframe>
 &lt;/div>
 &lt;p>Now obviously coding a whole fluid simulation with particles and forces was too much to do just for a silly visualization, so I decided on writing a simple force repellent simulation in Javascript.&lt;/p>
 &lt;p>I quickly then noticed that the performance, while manageable, wasn&amp;rsquo;t fantastic, so I ended up writing the core logic again in Rust, and embedding it onto the page with WASM. This was quite a lot of fun, and the end result was a simulation more than twice as fast.&lt;/p>
@@ -101,10 +291,11 @@ Because at the time of writing, there is no direct way from WASM (be it Rust, or
 &lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h3 id="i-should-do-this-more-often">I should do this more often&lt;/h3>
 &lt;p>I had a lot of fun working on this and now I can&amp;rsquo;t help but wait for the day when WASM has full control over the DOM, imagine the performance!&lt;/p>
 &lt;p>This project has been a great learning experience, and it&amp;rsquo;s always satisfying to see the final result come to life. I encourage you to take on similar challenges and explore new approaches to coding. Who knows, you might just discover a whole new way of thinking about a problem!&lt;/p>
-&lt;p>Until next time, happy coding!&lt;/p></content></item><item><title>How to fix WSL2 crashing mid compile (Or any heavy IO)</title><link>/posts/wsloom/</link><pubDate>Tue, 30 Jan 2024 12:00:00 +0000</pubDate><guid>/posts/wsloom/</guid><description>Reminiscing with some friends about how long the compile times were on Gentoo back in the day when we used it, I got curious about how long it would take to compile Chromium today in WSL2 on an i9 13900KF CPU. Back then, it used to take well over a day on my i5 3470.
-Getting Chromium to compile All you have to do to compile Chromium is follow the official Google build instructions here:</description><content>&lt;p>Reminiscing with some friends about how long the compile times were on Gentoo back in the day when we used it, I got curious about how long it would take to compile Chromium today in WSL2 on an &lt;a href="https://www.intel.com/content/www/us/en/products/sku/230497/intel-core-i913900kf-processor-36m-cache-up-to-5-80-ghz/specifications.html">i9 13900KF CPU&lt;/a>. Back then, it used to take well over a day on my &lt;a href="https://ark.intel.com/content/www/us/en/ark/products/68316/intel-core-i5-3470-processor-6m-cache-up-to-3-60-ghz.html">i5 3470&lt;/a>.&lt;/p>
+&lt;p>Until next time, happy coding!&lt;/p></content></item><item><title>How to fix WSL2 crashing mid compile (Or any heavy IO)</title><link>/posts/wsloom/</link><pubDate>Tue, 30 Jan 2024 12:00:00 +0000</pubDate><guid>/posts/wsloom/</guid><description>&lt;p>Reminiscing with some friends about how long the compile times were on Gentoo back in the day when we used it, I got curious about how long it would take to compile Chromium today in WSL2 on an &lt;a href="https://www.intel.com/content/www/us/en/products/sku/230497/intel-core-i913900kf-processor-36m-cache-up-to-5-80-ghz/specifications.html">i9 13900KF CPU&lt;/a>. Back then, it used to take well over a day on my &lt;a href="https://ark.intel.com/content/www/us/en/ark/products/68316/intel-core-i5-3470-processor-6m-cache-up-to-3-60-ghz.html">i5 3470&lt;/a>.&lt;/p>
 &lt;h1 id="getting-chromium-to-compile">Getting Chromium to compile&lt;/h1>
-&lt;p>All you have to do to compile Chromium is follow the official Google build instructions &lt;a href="https://chromium.googlesource.com/chromium/src/+/main/docs/linux/build_instructions.md">here&lt;/a>:&lt;/p>
+&lt;p>All you have to do to compile Chromium is follow the official Google build instructions &lt;a href="https://chromium.googlesource.com/chromium/src/&amp;#43;/main/docs/linux/build_instructions.md">here&lt;/a>:&lt;/p></description><content>&lt;p>Reminiscing with some friends about how long the compile times were on Gentoo back in the day when we used it, I got curious about how long it would take to compile Chromium today in WSL2 on an &lt;a href="https://www.intel.com/content/www/us/en/products/sku/230497/intel-core-i913900kf-processor-36m-cache-up-to-5-80-ghz/specifications.html">i9 13900KF CPU&lt;/a>. Back then, it used to take well over a day on my &lt;a href="https://ark.intel.com/content/www/us/en/ark/products/68316/intel-core-i5-3470-processor-6m-cache-up-to-3-60-ghz.html">i5 3470&lt;/a>.&lt;/p>
+&lt;h1 id="getting-chromium-to-compile">Getting Chromium to compile&lt;/h1>
+&lt;p>All you have to do to compile Chromium is follow the official Google build instructions &lt;a href="https://chromium.googlesource.com/chromium/src/&amp;#43;/main/docs/linux/build_instructions.md">here&lt;/a>:&lt;/p>
 &lt;ul>
 &lt;li>Install the dependencies&lt;/li>
 &lt;li>Clone the depot tools as suggested&lt;/li>
@@ -154,20 +345,23 @@ Getting Chromium to compile All you have to do to compile Chromium is follow the
 &lt;p>And lastly, don&amp;rsquo;t use all your CPU threads when compiling, or WSL will die on you. I used half of them, but you can probably use 2/3 just fine.&lt;/p>
 &lt;/li>
 &lt;/ul>
-&lt;p>And if you are curious, compiling Chromium on a 13900KF, in WSL2, takes &lt;code>1 hour and 6 minutes&lt;/code>, extrapolating from the &lt;code>-j16&lt;/code> timings.&lt;/p></content></item><item><title>Critical Alert - Tech Industry Must Act on Job Market Chaos!</title><link>/posts/jobhunting/</link><pubDate>Wed, 10 Jan 2024 12:31:42 +0000</pubDate><guid>/posts/jobhunting/</guid><description>Applying to a job is a broken system This blog post is a call to action, urging reform in the tech recruitment process. It&amp;rsquo;s a shared struggle, demanding change for a more efficient and promising future in our industry.
-Being genuine is not encouraged In the tech recruiting scene, a significant emphasis is placed on writing personalized cover letters. However, these letters, requiring genuine and thoughtful effort, are time-intensive to compose, sometimes demanding as much time as a full-time job, just for a chance at being noticed.</description><content>&lt;h1 id="applying-to-a-job-is-a-broken-system">Applying to a job is a broken system&lt;/h1>
+&lt;p>And if you are curious, compiling Chromium on a 13900KF, in WSL2, takes &lt;code>1 hour and 6 minutes&lt;/code>, extrapolating from the &lt;code>-j16&lt;/code> timings.&lt;/p></content></item><item><title>Critical Alert - Tech Industry Must Act on Job Market Chaos!</title><link>/posts/jobhunting/</link><pubDate>Wed, 10 Jan 2024 12:31:42 +0000</pubDate><guid>/posts/jobhunting/</guid><description>&lt;h1 id="applying-to-a-job-is-a-broken-system">Applying to a job is a broken system&lt;/h1>
 &lt;p>This blog post is a call to action, urging reform in the tech recruitment process. It&amp;rsquo;s a shared struggle, demanding change for a more efficient and promising future in our industry.&lt;/p>
 &lt;h4 id="being-genuine-is-not-encouraged">Being genuine is not encouraged&lt;/h4>
-&lt;p>&lt;img alt="Cover letter" src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173" alt="Cover letter">&lt;/p>
+&lt;p>In the tech recruiting scene, a significant emphasis is placed on writing personalized cover letters. However, these letters, requiring genuine and thoughtful effort, are time-intensive to compose, sometimes demanding as much time as a full-time job, just for a chance at being noticed.&lt;/p></description><content>&lt;h1 id="applying-to-a-job-is-a-broken-system">Applying to a job is a broken system&lt;/h1>
+&lt;p>This blog post is a call to action, urging reform in the tech recruitment process. It&amp;rsquo;s a shared struggle, demanding change for a more efficient and promising future in our industry.&lt;/p>
+&lt;h4 id="being-genuine-is-not-encouraged">Being genuine is not encouraged&lt;/h4>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173" alt="Cover letter">&lt;/p>
 &lt;p>In the tech recruiting scene, a significant emphasis is placed on writing personalized cover letters. However, these letters, requiring genuine and thoughtful effort, are time-intensive to compose, sometimes demanding as much time as a full-time job, just for a chance at being noticed.&lt;/p>
 &lt;p>Those who don&amp;rsquo;t spend time writing a genuine letter but resort to using templates, or ChatGPT have much better chances.&lt;/p>
 &lt;h4 id="the-lemon-dilemma">The lemon dilemma&lt;/h4>
-&lt;p>&lt;img alt="Lemons" src="https://images.unsplash.com/photo-1609196141706-91f4f03e1543">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1609196141706-91f4f03e1543" alt="Lemons">&lt;/p>
 &lt;p>Recruiters often lack a deep understanding of the job requirements they list.&lt;/p>
 &lt;p>For instance, if a job description asks for lemon expertise and a candidate mentions their proficiency in citruses but not lemons specifically, their application might be overlooked.&lt;/p>
 &lt;p>This narrow focus on exact wording overlooks potentially qualified candidates and can be detrimental to the hiring process.&lt;/p>
 &lt;h4 id="the-expert-novice-paradox">The expert novice paradox&lt;/h4>
-&lt;p>&lt;img alt="Learning" src="https://images.unsplash.com/photo-1520076794559-6a1229412a42">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1520076794559-6a1229412a42" alt="Learning">&lt;/p>
 &lt;p>Job requirements often resemble a jumble of buzzwords, seemingly optimized more for search engine visibility than for attracting the right candidate.&lt;/p>
 &lt;p>Absurdities abound, such as demanding five years of experience in a technology that&amp;rsquo;s only been around for three. Conversely, basic skills like Git and command line proficiency are listed as requirements for senior roles, as if such skills could be absent at that level of expertise.&lt;/p>
 &lt;h4 id="the-mustard-bottle-conundrum">The mustard bottle conundrum&lt;/h4>
@@ -176,121 +370,122 @@ Being genuine is not encouraged In the tech recruiting scene, a significant emph
 &lt;p>Candidates encounter bizarre questions like, &amp;ldquo;Are you more like a bottle of ketchup or mustard in your last major project contribution?&amp;rdquo; or are asked to choose between images, such as a spoon or a fork, to best represent themselves.&lt;/p>
 &lt;p>These 60-question exercises seem more like a dive into abstract personality assessments than a relevant evaluation of professional skills.&lt;/p>
 &lt;h4 id="the-quest-for-standardization">The quest for standardization&lt;/h4>
-&lt;p>&lt;img alt="Forms" src="/job-hunting-2024/forms.png">&lt;/p>
+&lt;p>&lt;img src="/job-hunting-2024/forms.png" alt="Forms">&lt;/p>
 &lt;p>One of the most frustrating aspects of tech job hunting is the redundancy of inputting basic personal details, already outlined in a CV, into various application forms.&lt;/p>
 &lt;p>While these forms could easily refer to the CV for this information, many still require manual entry, sometimes even disabling the paste function.&lt;/p>
 &lt;p>Platforms like Otta or LinkedIn have attempted to streamline this process with &amp;lsquo;quick apply&amp;rsquo; features, allowing candidates to fill out their profile once and submit it for multiple applications.&lt;/p>
 &lt;p>However, this only works about 30% of the time. Many companies still insist on directing applicants to their websites, necessitating the repetitive task of typing out the same information.&lt;/p>
 &lt;h4 id="the-illusion-of-advantage">The illusion of advantage&lt;/h4>
-&lt;p>&lt;img alt="LinkedIn Premium" src="/job-hunting-2024/linkedin-premium.png">&lt;/p>
+&lt;p>&lt;img src="/job-hunting-2024/linkedin-premium.png" alt="LinkedIn Premium">&lt;/p>
 &lt;p>Job hunting platforms often offer premium, paid options, targeting those desperate for employment and promising enhanced visibility or chances.&lt;/p>
 &lt;p>For instance, LinkedIn&amp;rsquo;s premium service—costing significantly more than a Netflix subscription—offers features like direct messaging anyone, regardless of connection status.&lt;/p>
 &lt;p>However, despite crafting well-thought-out messages to reach recruiters or company owners, the reality is often disappointing. These messages frequently go unread, raising the question: who actively uses LinkedIn unless they&amp;rsquo;re job hunting themselves?&lt;/p>
 &lt;h4 id="standing-out-a-double-edged-sword">Standing out: a double-edged sword&lt;/h4>
-&lt;p>&lt;img alt="Standing out" src="https://images.unsplash.com/photo-1533032968297-a47e51cbdc93">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1533032968297-a47e51cbdc93" alt="Standing out">&lt;/p>
 &lt;p>In the tech job market, differentiation is key, yet it can also be a stumbling block.&lt;/p>
 &lt;p>With countless engineers applying for top-tier positions, standing out is crucial. Advice on this includes crafting a CV that’s not just concise and clear, but also visually unique with elements like color or Feng Shui-inspired UTF characters.&lt;/p>
 &lt;p>I created my own distinct, modern, and reader-friendly CV, but soon learned that resume-scanning bots prefer more traditional formats.&lt;/p>
 &lt;p>To adapt, I even invested in a service that evaluated my CV’s likelihood of passing these automated screenings. Yet, even after conforming to a standard format, the response rate was disappointingly similar to that of my unique CV, demonstrating the unpredictability and challenge of balancing personal flair with system compatibility in the job hunt.&lt;/p>
 &lt;h4 id="the-alchemy-of-cv-crafting">The alchemy of CV crafting&lt;/h4>
-&lt;p>&lt;img alt="My own CV" src="/job-hunting-2024/my-cv.png">&lt;/p>
+&lt;p>&lt;img src="/job-hunting-2024/my-cv.png" alt="My own CV">&lt;/p>
 &lt;p>In the world of engineering, where logic and precision reign, creating a CV seems more like an art form, or even magic.Despite our skills in logical thinking and meticulous project planning, CV design demands a completely different set of abilities.&lt;/p>
 &lt;p>Feedback on my CV has been polarizing; some criticize various aspects and suggest improvements, while others praise it as one of the best they&amp;rsquo;ve seen. This contradictory advice makes refining the CV feel like a step forward and a step back simultaneously.&lt;/p>
 &lt;p>Ironically, in the rare instances when my CV bypasses the initial automated filters and I land an interview, recruiters often express admiration for it.&lt;/p>
 &lt;p>The challenge lies not in the content of the CV, but in ensuring it&amp;rsquo;s seen by human eyes, rather than being dismissed by the unpredictable screening bots that stand as gatekeepers between candidates and potential employers.&lt;/p>
 &lt;h4 id="the-mirage-of-abundant-job-listings">The mirage of abundant job listings&lt;/h4>
-&lt;p>&lt;img alt="Mirage" src="https://images.unsplash.com/photo-1641497499382-f775ba7240ab">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1641497499382-f775ba7240ab" alt="Mirage">&lt;/p>
 &lt;p>On job platforms, there seems to be an endless stream of opportunities, but increasingly, many of these listings are turning out to be phantom jobs.&lt;/p>
 &lt;p>Companies often post these to maintain engagement or build a pool of interested candidates for future needs. My experience reflects this trend—I&amp;rsquo;ve received interview invitations from companies I applied to over six months ago, with the longest delay being ten months.&lt;/p>
 &lt;p>Driven by curiosity, I set up a service in my home lab to track job postings on several large companies&amp;rsquo; boards. I observed a peculiar pattern: jobs being posted and removed at odd hours, like 4 AM on a Saturday, and the same positions reappearing every couple of weeks.&lt;/p>
 &lt;p>Similarly, smaller companies repeatedly advertise the same mid-level engineer position, seemingly unable to fill it for months on end. This raises questions: Are there truly no suitable candidates among the thousands who apply? Or is it that these companies, like a 25-person startup supposedly hiring 30 mid-level engineers in a year, are not genuinely looking to fill these positions?&lt;/p>
 &lt;h4 id="the-void-of-unreturned-effort">The void of unreturned effort&lt;/h4>
-&lt;p>&lt;img alt="After work" src="https://images.unsplash.com/photo-1600453364898-255c24a205d2">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1600453364898-255c24a205d2" alt="After work">&lt;/p>
 &lt;p>The job application process often involves an immense personal investment: meticulously tailoring a CV for each role, writing thoughtful cover letters, and enduring up to five rounds of interviews, only to be met with a deafening silence.&lt;/p>
 &lt;p>No offer, no rejection, no feedback - not even a courtesy &amp;ldquo;thank you.&amp;rdquo; This scenario is frustratingly common, especially when you&amp;rsquo;ve successfully navigated through all the behavioral and technical interviews, seemingly forming a good rapport with the team.&lt;/p>
 &lt;p>In such instances, it&amp;rsquo;s reasonable to expect at least a brief explanation of the decision. The absence of closure not only leaves candidates in limbo but also suggests they might merely be backup options, perhaps to be contacted much later.&lt;/p>
 &lt;p>This lack of communication in the recruitment process, after candidates have invested countless hours, reflects a disregard for their time and effort.&lt;/p>
 &lt;h4 id="the-priceless-hours-of-unemployment">The priceless hours of unemployment&lt;/h4>
-&lt;p>&lt;img alt="Money" src="https://images.unsplash.com/photo-1580519542036-c47de6196ba5">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1580519542036-c47de6196ba5" alt="Money">&lt;/p>
 &lt;p>It&amp;rsquo;s a paradox in the job market: while companies are prepared to offer salaries acknowledging the value of an employee&amp;rsquo;s work hours, they simultaneously expect candidates to invest significant unpaid time in the recruitment process.&lt;/p>
 &lt;p>This includes spending 5, 20, or even over 50 hours on homework projects without any assurance of employment, even if the work is well-received.&lt;/p>
 &lt;p>In addition, there&amp;rsquo;s an expectation for candidates to thoroughly research the company, often to an unreasonable degree. For instance, not knowing the name of the company&amp;rsquo;s first CTO can be seen as a lack of interest, a criterion I&amp;rsquo;ve personally encountered several times.&lt;/p>
 &lt;p>The irony is stark when you&amp;rsquo;re unemployed, every hour is precious, yet you&amp;rsquo;re expected to give them away for free in the hope of securing a job.&lt;/p>
 &lt;p>And let&amp;rsquo;s not forget the obligatory LeetCode grind, a topic already well-trodden in other discussions but indicative of the extensive preparation expected in today&amp;rsquo;s job market.&lt;/p>
 &lt;h4 id="payday-plot-twist-senior-roles-minimum-wages">Payday plot twist: senior roles, minimum wages&lt;/h4>
-&lt;p>&lt;img alt="Stock prices" src="https://plus.unsplash.com/premium_photo-1682309623835-d15358bcb195">&lt;/p>
+&lt;p>&lt;img src="https://plus.unsplash.com/premium_photo-1682309623835-d15358bcb195" alt="Stock prices">&lt;/p>
 &lt;p>Navigating the job market often comes with an unwelcome surprise towards the end - the salary discussion.&lt;/p>
 &lt;p>In some countries, candidates have the advantage of knowing salary ranges upfront, but for many, this information is obscured until after enduring 5-7 rounds of interviews.&lt;/p>
 &lt;p>The revelation can be jarring, especially when the offered salary is significantly lower than previous compensation. I&amp;rsquo;ve personally experienced offers of minimum wage for senior positions five times in the last six months.&lt;/p>
 &lt;p>This practice seems to exploit the desperation that the flawed system breeds in job seekers, with companies leveraging this to offer substantially lower salaries, knowing that some candidates, worn down by the process, might reluctantly accept.&lt;/p>
 &lt;h4 id="risky-business-the-startup-salary-paradox">Risky business: the startup salary paradox&lt;/h4>
-&lt;p>&lt;img alt="Startups" src="https://images.unsplash.com/photo-1559136555-9303baea8ebd">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1559136555-9303baea8ebd" alt="Startups">&lt;/p>
 &lt;p>When applying to smaller companies and startups, one might expect a streamlined interview process, potentially leading to exciting work and competitive salaries.&lt;/p>
 &lt;p>However, my experience has painted a different picture. Startups often offer surprisingly low base salaries, compensating the difference with stock options that may or may not bear fruit.&lt;/p>
 &lt;p>Moreover, the technical direction, often rigidly set by CTOs, can be inflexible and driven more by personal whims than practicality.&lt;/p>
 &lt;p>I&amp;rsquo;ve encountered offers from startups that demanded long hours (10-12 a day), personal equipment provisions, and an all-consuming commitment to the company ethos, all for a salary that&amp;rsquo;s hard to justify.&lt;/p>
 &lt;p>I was told I need to live and breathe &lt;em>company name&lt;/em>&amp;hellip;&lt;/p>
 &lt;h4 id="referral-roulette-navigating-networkings-nuances">Referral roulette: navigating networking&amp;rsquo;s nuances&lt;/h4>
-&lt;p>&lt;img alt="Referral" src="https://images.unsplash.com/photo-1564415051543-cb73a7468103">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1564415051543-cb73a7468103" alt="Referral">&lt;/p>
 &lt;p>The common advice in job hunting is &amp;ldquo;it&amp;rsquo;s not what you know, but who you know.&amp;rdquo;&lt;/p>
 &lt;p>Despite being referred to several companies, challenges and inconsistencies arose.&lt;/p>
 &lt;p>My first referral was unsuccessful due to a broken referral process; they discarded my application for lacking additional information, which their system couldn&amp;rsquo;t accommodate.&lt;/p>
 &lt;p>In two other cases, I completed all interview rounds, one stretching over three months, only to be rejected. The feedback was puzzling—they claimed I lacked experience in large companies, despite my history with firms 20 times their size.&lt;/p>
 &lt;p>For the fourth referral, I was denied an interview because I had previously applied and was rejected without a CV review, and company policy required a year&amp;rsquo;s gap before reapplying.&lt;/p>
 &lt;h4 id="the-perfect-fit-fallacy">The perfect fit fallacy&lt;/h4>
-&lt;p>&lt;img alt="Puzzle piece" src="https://images.unsplash.com/photo-1605712916066-e143c317df72">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1605712916066-e143c317df72" alt="Puzzle piece">&lt;/p>
 &lt;p>In the tech job market, being almost a perfect match isn&amp;rsquo;t enough.&lt;/p>
 &lt;p>If you lack familiarity with even one minor tool they use, your chances diminish, regardless of your passion or willingness to learn it on your own time.&lt;/p>
 &lt;p>Many companies don&amp;rsquo;t seem to value the desire to grow and adapt; instead, they seek an immediate, precise fit—a candidate who meets the current needs and can be easily replaced when no longer necessary.&lt;/p>
 &lt;p>This approach overlooks the potential of passionate, adaptable candidates, favoring a &amp;lsquo;perfect fit&amp;rsquo; mindset in a market flooded with options, where the next &amp;lsquo;perfect&amp;rsquo; candidate is always waiting in the wings.&lt;/p>
 &lt;h4 id="bait-and-switch-the-job-description-dilemma">Bait and switch: the job description dilemma&lt;/h4>
-&lt;p>&lt;img alt="Mechanic" src="https://images.unsplash.com/photo-1681812508855-f7b04fefcd83">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1681812508855-f7b04fefcd83" alt="Mechanic">&lt;/p>
 &lt;p>The tech job market is rife with instances of misleading job descriptions.&lt;/p>
 &lt;p>It&amp;rsquo;s become all too common to apply for a specific role, only to be informed later in the process that the position is no longer available, or its scope has dramatically changed.&lt;/p>
 &lt;p>For example, I applied for a backend position, but after three interviews, the company shifted its focus, seeking an ML engineer instead.&lt;/p>
 &lt;p>Another common tactic is to claim that the job posting is outdated and that they need a different skill set, subtly implying that the candidate is at fault for not adapting.&lt;/p>
 &lt;p>This approach can make applicants feel unreasonable for turning down a role that doesn&amp;rsquo;t match their skills or career goals, leveraging the pressure of a competitive job market to their advantage.&lt;/p>
 &lt;h4 id="the-paradox-of-the-peaceful-professional-conflict-as-a-credential">The paradox of the peaceful professional: conflict as a credential&lt;/h4>
-&lt;p>&lt;img alt="Office rage" src="https://images.unsplash.com/photo-1544717301-9cdcb1f5940f">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1544717301-9cdcb1f5940f" alt="Office rage">&lt;/p>
 &lt;p>In the current job interview landscape, there&amp;rsquo;s an ironic twist: those who engage in workplace conflicts might have an edge.&lt;/p>
 &lt;p>Standard interview questions often probe for experiences resolving prolonged conflicts with colleagues. Those who frequently find themselves in such situations can draw from real examples or lessons learned.&lt;/p>
 &lt;p>Conversely, for those who are naturally non-confrontational, cooperative, and avoid workplace disputes, this becomes a disadvantage. They might be perceived as lacking in a key area of experience.&lt;/p>
 &lt;p>Moreover, individuals adept at fabricating stories can create compelling narratives about resolving fictional conflicts, positioning themselves as problem-solvers.&lt;/p>
 &lt;p>This dynamic places individuals who foster harmonious work environments at a seeming disadvantage, as their lack of conflict is misconstrued as a lack of experience in conflict resolution.&lt;/p>
 &lt;h4 id="rules-for-thee-not-for-me-the-interview-table-turns">Rules for thee, not for me: the interview table turns&lt;/h4>
-&lt;p>&lt;img alt="Rules statue" src="https://images.unsplash.com/photo-1589994965851-a8f479c573a9">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1589994965851-a8f479c573a9" alt="Rules statue">&lt;/p>
 &lt;p>Frustrated with the repetitive nature of interview questions, I decided to flip the script during my interviews.
 When it was my turn to ask questions, I posed the same types of queries that interviewers typically ask candidates.&lt;/p>
 &lt;p>The results were eye-opening. Many interviewers struggled to respond, and those who did often gave answers that were either underwhelming or raised serious red flags about the company culture.&lt;/p>
 &lt;p>More startling was the technical inadequacy revealed when I asked senior engineers basic questions about system architecture or common tools like Redis and Docker.&lt;/p>
 &lt;p>Their inability to answer such fundamental questions exposed a concerning knowledge gap in roles where expertise should be a given, underscoring a troubling disparity in the expectations set for candidates versus those demonstrated by current employees.&lt;/p>
 &lt;h4 id="when-interviewers-warn-you-off">When interviewers warn you off&lt;/h4>
-&lt;p>&lt;img alt="Danger sign" src="https://images.unsplash.com/photo-1511737207395-5b1ff1f86e54">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1511737207395-5b1ff1f86e54" alt="Danger sign">&lt;/p>
 &lt;p>In my job search, particularly with smaller companies and startups, I&amp;rsquo;ve encountered a startling trend where interviewers dissuade me from joining their team.&lt;/p>
 &lt;p>Some have candidly shared their experiences of being overworked, while others described their workplace as merely a temporary stop, not suitable for someone with a genuine passion for technology.&lt;/p>
 &lt;p>A few were enthusiastic about having me on board but were upfront about the drawbacks: excessive stress, lack of annual raises, no input on projects, and even instances of being bullied by CTOs.&lt;/p>
 &lt;p>These admissions have led me to decline such offers, and I can&amp;rsquo;t help but sympathize with those who, due to circumstances, don&amp;rsquo;t have the option to hold out for a more suitable and fulfilling job opportunity.&lt;/p>
 &lt;h4 id="the-employment-tightrope">The employment tightrope&lt;/h4>
-&lt;p>&lt;img alt="Tightrope" src="https://images.unsplash.com/photo-1590641531727-3e65c2a08a77">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1590641531727-3e65c2a08a77" alt="Tightrope">&lt;/p>
 &lt;p>In the current job market, there&amp;rsquo;s a tricky balancing act when considering a career move.&lt;/p>
 &lt;p>A gap of just a few months on your CV can be seen as a red flag, making it harder to secure interviews. Similarly, leaving a job before the two-year mark is often viewed with suspicion, leading to your CV being passed over.&lt;/p>
 &lt;p>This creates a toxic catch-22: stay unemployed and you risk being seen as less employable due to gaps, but accept a subpar offer too hastily and you might find yourself stuck in a role with low pay, no growth potential, a toxic work environment, and mediocre technical challenges.&lt;/p>
 &lt;p>Leaving such a position too soon only compounds the problem, as it can hinder future job prospects.&lt;/p>
 &lt;p>This situation forces job seekers into a difficult choice between settling for a less-than-ideal role or facing potential stigmatization for seeking better opportunities.&lt;/p>
 &lt;h4 id="temporary-troubles">Temporary troubles&lt;/h4>
-&lt;p>&lt;img alt="Clocks" src="https://images.unsplash.com/photo-1533749047139-189de3cf06d3">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1533749047139-189de3cf06d3" alt="Clocks">&lt;/p>
 &lt;p>Seeking part-time work while job hunting in the tech industry often seems like a practical solution, but it comes with its own set of challenges.&lt;/p>
 &lt;p>The job search itself is a demanding full-time endeavor, consuming vast amounts of time and mental energy. Even dedicating half your day to it can be taxing.&lt;/p>
 &lt;p>However, the part-time job market is fraught with problematic contracts. I&amp;rsquo;ve encountered agreements claiming ownership of any personal projects developed in my free time. Others stipulate needing their approval to accept any additional part-time or full-time work. Some contracts even prevent a quick exit, requiring a three-month notice period.&lt;/p>
 &lt;p>This creates a treacherous landscape for those looking for temporary work. The harsh reality is, if you&amp;rsquo;re unwilling to accept these stringent conditions, there are always others more desperate who will, making the part-time job market a challenging and often exploitative field to navigate.&lt;/p>
 &lt;h1 id="urgent-reform-needed-breaking-the-destructive-cycle">Urgent reform needed: breaking the destructive cycle&lt;/h1>
-&lt;p>&lt;img alt="Emergency" src="https://images.unsplash.com/photo-1588268393007-068bc70a443d">&lt;/p>
+&lt;p>&lt;img src="https://images.unsplash.com/photo-1588268393007-068bc70a443d" alt="Emergency">&lt;/p>
 &lt;p>The state of the job market, particularly in engineering, is reaching a critical point.&lt;/p>
 &lt;p>Morale among engineers is at an all-time low, and surprisingly, companies are also feeling the impact.&lt;/p>
 &lt;p>The current recruitment and hiring processes tend to favor those who have connections or know how to manipulate the system, resulting in a workforce that is often less engaged, less productive, and less innovative. This perpetuates a downward spiral, as the very individuals responsible for these systems are often the ones benefitting from them.&lt;/p>
 &lt;p>Many talented engineers are choosing to start their own businesses, leaving a vacuum in larger companies.&lt;/p>
 &lt;p>In the short term, passionate and dedicated engineers who aren&amp;rsquo;t interested in management or entrepreneurship are the ones losing out. In the long term, it&amp;rsquo;s the larger companies that suffer from a brain drain, as they struggle to retain or attract genuinely committed and skilled talent.&lt;/p>
-&lt;p>&lt;b>This cycle needs to be broken for the health of the industry and its professionals.&lt;/b>&lt;/p></content></item><item><title>How I deploy private GitHub projects to local self-hosted servers (CI/CD)</title><link>/posts/privategithubcicd/</link><pubDate>Sat, 12 Aug 2023 18:04:45 +0100</pubDate><guid>/posts/privategithubcicd/</guid><description>How I deploy private GitHub projects to local self-hosted servers (CI/CD) I have a lot of experience with massive CI/CD pipelines that deploy private code to public servers. I&amp;rsquo;ve also worked with pipelines that deploy public repositories to private servers, such as my homelab. However, I never experimented with a pipeline that takes a private GitHub repo, builds it, and deploys it to a server on the LAN. That&amp;rsquo;s precisely what I needed for a project I&amp;rsquo;m currently working on that isn&amp;rsquo;t yet public.</description><content>&lt;h1 id="how-i-deploy-private-github-projects-to-local-self-hosted-servers-cicd">How I deploy private GitHub projects to local self-hosted servers (CI/CD)&lt;/h1>
+&lt;p>&lt;b>This cycle needs to be broken for the health of the industry and its professionals.&lt;/b>&lt;/p></content></item><item><title>How I deploy private GitHub projects to local self-hosted servers (CI/CD)</title><link>/posts/privategithubcicd/</link><pubDate>Sat, 12 Aug 2023 18:04:45 +0100</pubDate><guid>/posts/privategithubcicd/</guid><description>&lt;h1 id="how-i-deploy-private-github-projects-to-local-self-hosted-servers-cicd">How I deploy private GitHub projects to local self-hosted servers (CI/CD)&lt;/h1>
+&lt;p>I have a lot of experience with massive CI/CD pipelines that deploy private code to public servers. I&amp;rsquo;ve also worked with pipelines that deploy public repositories to private servers, such as my homelab. However, I never experimented with a pipeline that takes a private GitHub repo, builds it, and deploys it to a server on the LAN. That&amp;rsquo;s precisely what I needed for a project I&amp;rsquo;m currently working on that isn&amp;rsquo;t yet public.&lt;/p></description><content>&lt;h1 id="how-i-deploy-private-github-projects-to-local-self-hosted-servers-cicd">How I deploy private GitHub projects to local self-hosted servers (CI/CD)&lt;/h1>
 &lt;p>I have a lot of experience with massive CI/CD pipelines that deploy private code to public servers. I&amp;rsquo;ve also worked with pipelines that deploy public repositories to private servers, such as my homelab. However, I never experimented with a pipeline that takes a private GitHub repo, builds it, and deploys it to a server on the LAN. That&amp;rsquo;s precisely what I needed for a project I&amp;rsquo;m currently working on that isn&amp;rsquo;t yet public.&lt;/p>
 &lt;p>I took some time to design the best method for this. The two top ideas were: running a self-hosted GitHub Actions runner, which would then redeploy the service in the same LAN as the runner, or hosting a Docker container on a Proxmox VM. This container would act as a webhook and later redeploy the service on the same VM. I chose the second option because it offers more flexibility for future scenarios, such as deploying from repositories hosted on other platforms like GitLab.&lt;/p>
 &lt;p>Here&amp;rsquo;s what the workflow looks like:&lt;/p>
@@ -560,8 +755,10 @@ v
 &lt;p>And that&amp;rsquo;s basically it.&lt;/p>
 &lt;h2 id="thoughts">Thoughts&lt;/h2>
 &lt;p>The beauty of this approach is that if later down the line I want to do this with another private project, all I need to do is add another hook to the webhook container, create the project container just like this last one, and make sure the project has a GitHub action that triggers the webhook.&lt;/p>
-&lt;p>The best part is that this is not GitHub-specific either. If later down the line I want to move to GitLab, or I have a self-hosted Gitea instance, the same logic would apply. I would just need to find a way to trigger the webhook on a merge to the main branch.&lt;/p></content></item><item><title>Running Jetbrains remote dev servers on NixOS</title><link>/posts/jetbrainsremotedevservernixos/</link><pubDate>Mon, 10 Jul 2023 00:33:45 +0100</pubDate><guid>/posts/jetbrainsremotedevservernixos/</guid><description>EDIT: I have raised a PR to fix this upstream and got it merged, so you don&amp;rsquo;t have to follow the guide anymore, you can just use the package on nixpkgs unstable for the time being and later on in the future, a stable branch.
-For the past year or so I have been very interested in NixOS and Nix in general. I have set it up as my main OS on my desktop, I have used it on remote VPS instances, and I have used it for local projects as well in the shape of nix environments.</description><content>&lt;p>&lt;img alt="A remote project" src="/jb-nix-remote-server/project.png">&lt;/p>
+&lt;p>The best part is that this is not GitHub-specific either. If later down the line I want to move to GitLab, or I have a self-hosted Gitea instance, the same logic would apply. I would just need to find a way to trigger the webhook on a merge to the main branch.&lt;/p></content></item><item><title>Running Jetbrains remote dev servers on NixOS</title><link>/posts/jetbrainsremotedevservernixos/</link><pubDate>Mon, 10 Jul 2023 00:33:45 +0100</pubDate><guid>/posts/jetbrainsremotedevservernixos/</guid><description>&lt;p>&lt;img src="/jb-nix-remote-server/project.png" alt="A remote project">&lt;/p>
+&lt;p>EDIT: I have raised &lt;a href="https://github.com/NixOS/nixpkgs/pull/243533">a PR to fix this&lt;/a> upstream and got it merged, so you don&amp;rsquo;t have to follow the guide anymore, you can just use the package on nixpkgs unstable for the time being and later on in the future, a stable branch.&lt;/p>
+&lt;p>For the past year or so I have been very interested in &lt;a href="https://nixos.org/">NixOS and Nix&lt;/a> in general.
+I have set it up as my &lt;a href="https://github.com/tymscar/dotfiles">main OS on my desktop&lt;/a>, I have used it on remote VPS instances, and I have used it for local projects as well in the shape of nix environments.&lt;/p></description><content>&lt;p>&lt;img src="/jb-nix-remote-server/project.png" alt="A remote project">&lt;/p>
 &lt;p>EDIT: I have raised &lt;a href="https://github.com/NixOS/nixpkgs/pull/243533">a PR to fix this&lt;/a> upstream and got it merged, so you don&amp;rsquo;t have to follow the guide anymore, you can just use the package on nixpkgs unstable for the time being and later on in the future, a stable branch.&lt;/p>
 &lt;p>For the past year or so I have been very interested in &lt;a href="https://nixos.org/">NixOS and Nix&lt;/a> in general.
 I have set it up as my &lt;a href="https://github.com/tymscar/dotfiles">main OS on my desktop&lt;/a>, I have used it on remote VPS instances, and I have used it for local projects as well in the shape of nix environments.&lt;/p>
@@ -622,4 +819,4 @@ If there is none, it tries to start one. All good up to this point, however, her
 &lt;p>Note &lt;code>jetbrains.jdk&lt;/code> being there! Without it, none of this works, so do not forget to add it there!&lt;/p>
 &lt;p>Now you need to &lt;code>sudo nixos-rebuild switch&lt;/code> and start the server. The naming of the utility depends on the IDE you want to use, in my case &lt;code>webstorm-remote-dev-server run &amp;lt;path to project&amp;gt;&lt;/code>.&lt;/p>
 &lt;p>That is all, now you can just open up Jetbrains Gateway, go to the SSH tab and just connect to your instance by clicking on the project. It will be the one selected with the previous command!&lt;/p>
-&lt;p>&lt;img alt="Project list" src="/jb-nix-remote-server/projects.png">&lt;/p></content></item></channel></rss>
+&lt;p>&lt;img src="/jb-nix-remote-server/projects.png" alt="Project list">&lt;/p></content></item></channel></rss>

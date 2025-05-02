@@ -1,0 +1,145 @@
+<!doctype html><html lang=en><head><title>Using Nix to build JS/TS projects with private dependencies :: The Tymscar Blog</title>
+<meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="How can you tell Nix to use private NPM registries without being impure?"><meta name=keywords content="nix,linux,javascript,development"><meta name=robots content="noodp"><link rel=canonical href=/posts/nixprivatenpmrepos/><link rel=stylesheet href=/assets/style.css><link rel=stylesheet href=/assets/blue.css><link rel=apple-touch-icon href=/img/apple-touch-icon-192x192.png><link rel="shortcut icon" href=/img/favicon/favicon.ico><meta name=twitter:card content="summary"><meta name=twitter:site content="google.com"><meta name=twitter:creator content="tymscar"><meta property="og:locale" content="en"><meta property="og:type" content="article"><meta property="og:title" content="Using Nix to build JS/TS projects with private dependencies"><meta property="og:description" content="How can you tell Nix to use private NPM registries without being impure?"><meta property="og:url" content="/posts/nixprivatenpmrepos/"><meta property="og:site_name" content="The Tymscar Blog"><meta property="og:image" content="/img/favicon/favicon.ico"><meta property="og:image:width" content="2048"><meta property="og:image:height" content="1024"><meta property="article:published_time" content="2025-05-02 16:50:41 +0000 UTC"></head><body class=blue><div class="container center headings--one-size"><header class=header><div class=header__inner><div class=header__logo><a href=/><div class=logo>Tymscar</div></a></div></div></header><div class=content><div class=post><h1 class=post-title><a href=/posts/nixprivatenpmrepos/>Using Nix to build JS/TS projects with private dependencies</a></h1><div class=post-meta><span class=post-date>2025-05-02
+</span><span class=post-author>:: Oscar Molnar</span>
+<span class=post-reading-time>:: 6 min read (1167 words)</span></div><span class=post-tags>#<a href=/tags/nix/>nix</a>&nbsp;
+#<a href=/tags/linux/>linux</a>&nbsp;
+#<a href=/tags/javascript/>javascript</a>&nbsp;
+#<a href=/tags/development/>development</a>&nbsp;</span><div class=post-content><div><p><img src=/nix-private-npm-repos/githubActioonsSuccess.png alt="“Running code from a private repo”)"></p><p>Nix is a great tool for building software, especially in professional settings because of the guarantees it comes with.<br>For example, you can be sure that the software you build is reproducible and that it will work on any machine.</p><p>When it comes to building packages in the Nix world, you usually end up going with derivation builders already made for you.</p><p>For Rust there is <code>rustPlatform.buildRustPackage</code>, for Go there is <code>go2nix</code>, for JS/TS there is <code>node2nix</code>, and so on.</p><h2 id=so-what-is-the-problem-just-use-node2nix>So what is the problem? Just use <code>node2nix</code>!<a href=#so-what-is-the-problem-just-use-node2nix class=hanchor arialabel=Anchor>&#8983;</a></h2><p>Well, I wish it were that easy. The problem arises when you try to use private dependencies in your project, and this is not a niche issue at all.</p><p>In fact, if the project your company works on is not fully open-source, you are most likely using private dependencies too.</p><p>What makes that a problem is that for <code>node2nix</code> to be able to build your project <em>and</em> be pure, it needs to download the dependencies at build-time, store them in the Nix store, and make them available to the build process.<br>So at first I thought all I had to do was provide my secret token to <code>node2nix</code> and it would be able to download the dependencies.</p><p>But how do you do that? One way would be to set an environment variable with the token in it and then use that in your <code>package.json</code> file.<br>That would be <em>impure</em>, because the build process would depend on the environment variable being set.</p><p>Another way—the one I ended up going with—was to use a <code>.yarnrc.yml</code> file and set the token there. For testing I hosted a <a href=https://verdaccio.org/>Verdaccio</a> instance in my homelab, created a user, created a private package, and populated my <code>.yarnrc.yml</code> file like this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=display:flex><span><span style=color:#f92672>nodeLinker</span>: <span style=color:#ae81ff>node-modules</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>npmScopes</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>selfhosted</span>:
+</span></span><span style=display:flex><span>    <span style=color:#f92672>npmAlwaysAuth</span>: <span style=color:#66d9ef>true</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>npmAuthIdent</span>: <span style=color:#ae81ff>tymscar:ultraSecretPassword</span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>npmRegistryServer</span>: <span style=color:#ae81ff>https://verdaccio.tymscar.com</span>
+</span></span></code></pre></div><p>Don&rsquo;t worry. The server has been taken down after the CI went green in the demo repository!</p><p>Now whenever I ran <code>yarn install</code> it correctly downloaded my private package from the registry, defined in my <code>package.json</code> file like this:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-json data-lang=json><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#f92672>&#34;name&#34;</span>: <span style=color:#e6db74>&#34;supernixtest&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>&#34;version&#34;</span>: <span style=color:#e6db74>&#34;1.0.1&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>&#34;main&#34;</span>: <span style=color:#e6db74>&#34;index.js&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>&#34;license&#34;</span>: <span style=color:#e6db74>&#34;MIT&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>&#34;type&#34;</span>: <span style=color:#e6db74>&#34;module&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>&#34;dependencies&#34;</span>: {
+</span></span><span style=display:flex><span>    <span style=color:#f92672>&#34;@selfhosted/tymscartest1&#34;</span>: <span style=color:#e6db74>&#34;1.1.2&#34;</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>Notice the <code>@selfhosted</code> scope. This is the same one defined in my <code>.yarnrc.yml</code> file.</p><h2 id=cool-does-it-work-in-nix-now>Cool! Does it work in Nix now?<a href=#cool-does-it-work-in-nix-now class=hanchor arialabel=Anchor>&#8983;</a></h2><p>Well, it does if I commit this file to my repo, yes, but that would mean my public repo will contain my private registry token.</p><p>I remembered that <a href=https://github.com/Jadarma/advent-of-code-kotlin-solutions/>a friend of mine</a> used <strong>git-crypt</strong> to encrypt his Advent of Code input files, so I gave that a go and it worked. I installed git-crypt and added this to my <code>.gitattributes</code> file:</p><pre tabindex=0><code class=language-gitattributes data-lang=gitattributes>.yarnrc.yml filter=git-crypt diff=git-crypt
+</code></pre><h3 id=cicd-workflow>CI/CD workflow<a href=#cicd-workflow class=hanchor arialabel=Anchor>&#8983;</a></h3><p><img src=/nix-private-npm-repos/githubActions.png alt="Github Actions"></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=display:flex><span><span style=color:#f92672>name</span>: <span style=color:#ae81ff>CI Pipeline</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>on</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>push</span>:
+</span></span><span style=display:flex><span>    <span style=color:#f92672>branches</span>:
+</span></span><span style=display:flex><span>      - <span style=color:#ae81ff>main</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>jobs</span>:
+</span></span><span style=display:flex><span>  <span style=color:#f92672>build</span>:
+</span></span><span style=display:flex><span>    <span style=color:#f92672>runs-on</span>: <span style=color:#ae81ff>ubuntu-latest</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>steps</span>:
+</span></span><span style=display:flex><span>      - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>Checkout code</span>
+</span></span><span style=display:flex><span>        <span style=color:#f92672>uses</span>: <span style=color:#ae81ff>actions/checkout@v2</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>Unlock secrets</span>
+</span></span><span style=display:flex><span>        <span style=color:#f92672>uses</span>: <span style=color:#ae81ff>sliteteam/github-action-git-crypt-unlock@1.2.0</span>
+</span></span><span style=display:flex><span>        <span style=color:#f92672>env</span>:
+</span></span><span style=display:flex><span>          <span style=color:#f92672>GIT_CRYPT_KEY</span>: <span style=color:#ae81ff>${{ secrets.GIT_CRYPT_KEY }}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      - <span style=color:#f92672>uses</span>: <span style=color:#ae81ff>cachix/install-nix-action@v31</span>
+</span></span><span style=display:flex><span>        <span style=color:#f92672>with</span>:
+</span></span><span style=display:flex><span>          <span style=color:#f92672>github_access_token</span>: <span style=color:#ae81ff>${{ secrets.GITHUB_TOKEN }}</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>Run nix build</span>
+</span></span><span style=display:flex><span>        <span style=color:#f92672>run</span>: <span style=color:#ae81ff>nix build</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>Show tree structure of result directory</span>
+</span></span><span style=display:flex><span>        <span style=color:#f92672>run</span>: |<span style=color:#e6db74>
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          echo &#34;Tree structure of result directory:&#34;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          tree result</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      - <span style=color:#f92672>name</span>: <span style=color:#ae81ff>Run the main file (prints a message from the private repo)</span>
+</span></span><span style=display:flex><span>        <span style=color:#f92672>run</span>: |<span style=color:#e6db74>
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          echo &#34;Running the main file...&#34;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          nix run nixpkgs#nodejs -- result/index.js</span>
+</span></span></code></pre></div><p>I know, it looks a bit daunting if you&rsquo;ve never done something like this, but in all honesty it&rsquo;s not too bad.<br>Basically it downloads the repo, unlocks the secrets, installs Nix, builds the project, and runs it.<br>To decrypt the secrets I just had to add <code>GIT_CRYPT_KEY</code> to my GitHub repository secrets.</p><h2 id=so-what-is-the-secret-why-did-this-take-me-so-long-to-figure-out>So what is the secret? Why did this take me so long to figure out?<a href=#so-what-is-the-secret-why-did-this-take-me-so-long-to-figure-out class=hanchor arialabel=Anchor>&#8983;</a></h2><p>In Nix there are two main kinds of derivations: the normal ones you use every day, and <strong>FODs</strong>.</p><p><strong>FOD</strong> stands for <em>Fixed-Output Derivation</em>, and what makes them special is that they, unlike normal derivations, <em>have network access</em>. They can download files for you (such as private and public dependencies) and then store them in the Nix store, to be used by your normal derivations.</p><p>Does that mean FODs are not pure? No, actually they are. The only difference—and the way you define FODs—is by adding</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-nix data-lang=nix><span style=display:flex><span>outputHash <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;YOUR_HASH_HERE&#34;</span>;
+</span></span></code></pre></div><p>to any derivation. That means you <em>know</em> what the output of the derivation will be, and you can verify that the output is correct.</p><p>So the way to solve the whole issue is by using two derivations:</p><ol><li><strong>One FOD</strong> that has network access, fetches your dependencies, and stores them in the Nix store.</li><li><strong>One normal derivation</strong> that has access to those stored dependencies and builds your project.</li></ol><h3 id=flakenix><code>flake.nix</code><a href=#flakenix class=hanchor arialabel=Anchor>&#8983;</a></h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-nix data-lang=nix><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  description <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Node.js project with private npm registry support&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  inputs <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>    flake-parts<span style=color:#f92672>.</span>url <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;github:hercules-ci/flake-parts&#34;</span>;
+</span></span><span style=display:flex><span>    nixpkgs<span style=color:#f92672>.</span>url     <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;github:NixOS/nixpkgs/nixos-24.11&#34;</span>;
+</span></span><span style=display:flex><span>  };
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  outputs <span style=color:#f92672>=</span> { flake-parts<span style=color:#f92672>,</span> <span style=color:#f92672>...</span> } <span style=color:#f92672>@</span> inputs:
+</span></span><span style=display:flex><span>    flake-parts<span style=color:#f92672>.</span>lib<span style=color:#f92672>.</span>mkFlake { <span style=color:#66d9ef>inherit</span> inputs; } {
+</span></span><span style=display:flex><span>      systems <span style=color:#f92672>=</span> [ <span style=color:#e6db74>&#34;aarch64-darwin&#34;</span> <span style=color:#e6db74>&#34;x86_64-linux&#34;</span> ];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      perSystem <span style=color:#f92672>=</span> { pkgs<span style=color:#f92672>,</span> <span style=color:#f92672>...</span> }: <span style=color:#66d9ef>let</span>
+</span></span><span style=display:flex><span>        nodeEnv <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          export HOME=&#34;$NIX_BUILD_TOP&#34;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          export YARN_ENABLE_TELEMETRY=0
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          yarn config set enableGlobalCache false
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>        &#39;&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        supportedArchitecturesJSON <span style=color:#f92672>=</span> builtins<span style=color:#f92672>.</span>toJSON {
+</span></span><span style=display:flex><span>          os   <span style=color:#f92672>=</span> [ <span style=color:#e6db74>&#34;darwin&#34;</span> <span style=color:#e6db74>&#34;linux&#34;</span> ];
+</span></span><span style=display:flex><span>          cpu  <span style=color:#f92672>=</span> [ <span style=color:#e6db74>&#34;arm&#34;</span> <span style=color:#e6db74>&#34;arm64&#34;</span> <span style=color:#e6db74>&#34;ia32&#34;</span> <span style=color:#e6db74>&#34;x64&#34;</span> ];
+</span></span><span style=display:flex><span>          libc <span style=color:#f92672>=</span> [ <span style=color:#e6db74>&#34;glibc&#34;</span> <span style=color:#e6db74>&#34;musl&#34;</span> ];
+</span></span><span style=display:flex><span>        };
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#75715e># 1. FOD: fetch dependencies</span>
+</span></span><span style=display:flex><span>        yarnOfflineCache <span style=color:#f92672>=</span> pkgs<span style=color:#f92672>.</span>stdenvNoCC<span style=color:#f92672>.</span>mkDerivation {
+</span></span><span style=display:flex><span>          name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;super-nix-test-deps&#34;</span>;
+</span></span><span style=display:flex><span>          src  <span style=color:#f92672>=</span> <span style=color:#e6db74>./.</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          nativeBuildInputs <span style=color:#f92672>=</span> <span style=color:#66d9ef>with</span> pkgs; [ yarn-berry ];
+</span></span><span style=display:flex><span>          NODE_EXTRA_CA_CERTS <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;</span><span style=color:#e6db74>${</span>pkgs<span style=color:#f92672>.</span>cacert<span style=color:#e6db74>}</span><span style=color:#e6db74>/etc/ssl/certs/ca-bundle.crt&#34;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          configurePhase <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            runHook preConfigure
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            </span><span style=color:#e6db74>${</span>nodeEnv<span style=color:#e6db74>}</span><span style=color:#e6db74>
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            yarn config set cacheFolder $out
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            yarn config set supportedArchitectures --json &#39;</span><span style=color:#e6db74>${</span>supportedArchitecturesJSON<span style=color:#e6db74>}</span><span style=color:#e6db74>&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            runHook postConfigure
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          &#39;&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          buildPhase <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            runHook preBuild
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            yarn install --immutable --mode skip-build
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            runHook postBuild
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          &#39;&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          dontInstall     <span style=color:#f92672>=</span> <span style=color:#66d9ef>true</span>;
+</span></span><span style=display:flex><span>          outputHashAlgo  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;sha256&#34;</span>;
+</span></span><span style=display:flex><span>          outputHashMode  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;recursive&#34;</span>;
+</span></span><span style=display:flex><span>          outputHash      <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;sha256-WLURUf/xCDOEPOs5jKPAhYfv7Qvy+yxNMMLsq6lLCEQ=&#34;</span>;
+</span></span><span style=display:flex><span>        };
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>in</span> {
+</span></span><span style=display:flex><span>        <span style=color:#75715e># 2. Normal derivation: build the project</span>
+</span></span><span style=display:flex><span>        packages<span style=color:#f92672>.</span>default <span style=color:#f92672>=</span> pkgs<span style=color:#f92672>.</span>stdenv<span style=color:#f92672>.</span>mkDerivation {
+</span></span><span style=display:flex><span>          pname    <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;yarn-nix-private-repo-test&#34;</span>;
+</span></span><span style=display:flex><span>          version  <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;0.0.1&#34;</span>;
+</span></span><span style=display:flex><span>          src      <span style=color:#f92672>=</span> <span style=color:#e6db74>./.</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          nativeBuildInputs <span style=color:#f92672>=</span> <span style=color:#66d9ef>with</span> pkgs; [ nodejs yarn-berry ];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          configurePhase <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            runHook preConfigure
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            </span><span style=color:#e6db74>${</span>nodeEnv<span style=color:#e6db74>}</span><span style=color:#e6db74>
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            yarn config set cacheFolder </span><span style=color:#e6db74>${</span>yarnOfflineCache<span style=color:#e6db74>}</span><span style=color:#e6db74>
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            runHook postConfigure
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          &#39;&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          buildPhase <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            runHook preBuild
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            yarn install --immutable --immutable-cache
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            runHook postBuild
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          &#39;&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>          installPhase <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            mkdir -p $out
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>            cp -r . $out/
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>          &#39;&#39;</span>;
+</span></span><span style=display:flex><span>        };
+</span></span><span style=display:flex><span>      };
+</span></span><span style=display:flex><span>    };
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>Yes, it&rsquo;s quite long and seems daunting, but the main bits you need to understand are:</p><ul><li><strong><code>yarnOfflineCache</code></strong> is the FOD that fetches the dependencies and stores them in the Nix store.</li><li><strong><code>packages.default</code></strong> is the derivation that builds your project. It uses the cache via<br><code>yarn config set cacheFolder ${yarnOfflineCache}</code>.</li></ul><h2 id=ok-so-what-do-i-need-to-do-now-if-i-want-to-update-my-dependencies>Ok, so what do I need to do now if I want to update my dependencies?<a href=#ok-so-what-do-i-need-to-do-now-if-i-want-to-update-my-dependencies class=hanchor arialabel=Anchor>&#8983;</a></h2><p>Quite simple, actually:</p><ol><li>Work on the project as normal and run <code>yarn install</code> to update <code>yarn.lock</code>.</li><li>Delete the value of <code>outputHash</code> in the <code>yarnOfflineCache</code> derivation.</li><li>Run <code>nix build</code>. Nix will tell you the new hash—copy it back into <code>outputHash</code>.</li><li>Commit the changes. Your colleagues and CI can now run <code>nix build</code> without issues!</li></ol><p>If you want to see the whole project on GitHub, so it&rsquo;s easier to copy-paste, you can find it <a href=https://github.com/tymscar/Nix-Yarn-Private-Repo-Example>here</a>.</p><p>Special thanks to <a href=https://github.com/TeamWolfyta>Kieran</a> for spending a couple of hours with me on a Discord call trying to figure this out. Sorry it took this long to post the solution—it’s been weeks, but the part we were missing was the FOD with the output hash.</p></div></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><span class="button next"><a href=/posts/macusbdacstatic/><span class=button__text>How to fix static noise on macOS headphones</span>
+<span class=button__icon>→</span></a></span></div></div></div></div><footer class=footer><div class=footer__inner><div class=copyright><span>© 2025 Powered by <a href=http://gohugo.io>Hugo</a></span>
+<span>:: Theme made by <a href=https://twitter.com/panr>panr</a></span></div></div></footer><script src=/assets/main.js></script><script src=/assets/prism.js></script></div></body></html>

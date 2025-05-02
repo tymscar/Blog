@@ -1,11 +1,200 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Javascript on The Tymscar Blog</title><link>/tags/javascript/</link><description>Recent content in Javascript on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Thu, 04 Apr 2024 12:00:00 +0000</lastBuildDate><atom:link href="/tags/javascript/index.xml" rel="self" type="application/rss+xml"/><item><title>Simulating soapy water</title><link>/posts/soapsim/</link><pubDate>Thu, 04 Apr 2024 12:00:00 +0000</pubDate><guid>/posts/soapsim/</guid><description>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?
-No, just me? Well perhaps this blogpost isn&amp;rsquo;t for you then. Otherwise, buckle up!
-The experiment that caught my eye this time around was this video of a plate of water, with some pepper sprinkled on top uniformly, that when touched with a soapy finger, makes the pepper repel.</description><content>&lt;p>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?&lt;/p>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Javascript on The Tymscar Blog</title><link>/tags/javascript/</link><description>Recent content in Javascript on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Fri, 02 May 2025 16:50:41 +0000</lastBuildDate><atom:link href="/tags/javascript/index.xml" rel="self" type="application/rss+xml"/><item><title>Using Nix to build JS/TS projects with private dependencies</title><link>/posts/nixprivatenpmrepos/</link><pubDate>Fri, 02 May 2025 16:50:41 +0000</pubDate><guid>/posts/nixprivatenpmrepos/</guid><description>&lt;p>&lt;img src="/nix-private-npm-repos/githubActioonsSuccess.png" alt="“Running code from a private repo”)">&lt;/p>
+&lt;p>Nix is a great tool for building software, especially in professional settings because of the guarantees it comes with.&lt;br>
+For example, you can be sure that the software you build is reproducible and that it will work on any machine.&lt;/p>
+&lt;p>When it comes to building packages in the Nix world, you usually end up going with derivation builders already made for you.&lt;/p>
+&lt;p>For Rust there is &lt;code>rustPlatform.buildRustPackage&lt;/code>, for Go there is &lt;code>go2nix&lt;/code>, for JS/TS there is &lt;code>node2nix&lt;/code>, and so on.&lt;/p></description><content>&lt;p>&lt;img src="/nix-private-npm-repos/githubActioonsSuccess.png" alt="“Running code from a private repo”)">&lt;/p>
+&lt;p>Nix is a great tool for building software, especially in professional settings because of the guarantees it comes with.&lt;br>
+For example, you can be sure that the software you build is reproducible and that it will work on any machine.&lt;/p>
+&lt;p>When it comes to building packages in the Nix world, you usually end up going with derivation builders already made for you.&lt;/p>
+&lt;p>For Rust there is &lt;code>rustPlatform.buildRustPackage&lt;/code>, for Go there is &lt;code>go2nix&lt;/code>, for JS/TS there is &lt;code>node2nix&lt;/code>, and so on.&lt;/p>
+&lt;h2 id="so-what-is-the-problem-just-use-node2nix">So what is the problem? Just use &lt;code>node2nix&lt;/code>!&lt;/h2>
+&lt;p>Well, I wish it were that easy. The problem arises when you try to use private dependencies in your project, and this is not a niche issue at all.&lt;/p>
+&lt;p>In fact, if the project your company works on is not fully open-source, you are most likely using private dependencies too.&lt;/p>
+&lt;p>What makes that a problem is that for &lt;code>node2nix&lt;/code> to be able to build your project &lt;em>and&lt;/em> be pure, it needs to download the dependencies at build-time, store them in the Nix store, and make them available to the build process.&lt;br>
+So at first I thought all I had to do was provide my secret token to &lt;code>node2nix&lt;/code> and it would be able to download the dependencies.&lt;/p>
+&lt;p>But how do you do that? One way would be to set an environment variable with the token in it and then use that in your &lt;code>package.json&lt;/code> file.&lt;br>
+That would be &lt;em>impure&lt;/em>, because the build process would depend on the environment variable being set.&lt;/p>
+&lt;p>Another way—the one I ended up going with—was to use a &lt;code>.yarnrc.yml&lt;/code> file and set the token there. For testing I hosted a &lt;a href="https://verdaccio.org/">Verdaccio&lt;/a> instance in my homelab, created a user, created a private package, and populated my &lt;code>.yarnrc.yml&lt;/code> file like this:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">nodeLinker&lt;/span>: &lt;span style="color:#ae81ff">node-modules&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">npmScopes&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">selfhosted&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">npmAlwaysAuth&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">npmAuthIdent&lt;/span>: &lt;span style="color:#ae81ff">tymscar:ultraSecretPassword&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">npmRegistryServer&lt;/span>: &lt;span style="color:#ae81ff">https://verdaccio.tymscar.com&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Don&amp;rsquo;t worry. The server has been taken down after the CI went green in the demo repository!&lt;/p>
+&lt;p>Now whenever I ran &lt;code>yarn install&lt;/code> it correctly downloaded my private package from the registry, defined in my &lt;code>package.json&lt;/code> file like this:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-json" data-lang="json">&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;name&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;supernixtest&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;version&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;1.0.1&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;main&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;index.js&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;license&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;MIT&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;type&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;module&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;dependencies&amp;#34;&lt;/span>: {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">&amp;#34;@selfhosted/tymscartest1&amp;#34;&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;1.1.2&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Notice the &lt;code>@selfhosted&lt;/code> scope. This is the same one defined in my &lt;code>.yarnrc.yml&lt;/code> file.&lt;/p>
+&lt;h2 id="cool-does-it-work-in-nix-now">Cool! Does it work in Nix now?&lt;/h2>
+&lt;p>Well, it does if I commit this file to my repo, yes, but that would mean my public repo will contain my private registry token.&lt;/p>
+&lt;p>I remembered that &lt;a href="https://github.com/Jadarma/advent-of-code-kotlin-solutions/">a friend of mine&lt;/a> used &lt;strong>git-crypt&lt;/strong> to encrypt his Advent of Code input files, so I gave that a go and it worked. I installed git-crypt and added this to my &lt;code>.gitattributes&lt;/code> file:&lt;/p>
+&lt;pre tabindex="0">&lt;code class="language-gitattributes" data-lang="gitattributes">.yarnrc.yml filter=git-crypt diff=git-crypt
+&lt;/code>&lt;/pre>&lt;h3 id="cicd-workflow">CI/CD workflow&lt;/h3>
+&lt;p>&lt;img src="/nix-private-npm-repos/githubActions.png" alt="Github Actions">&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">CI Pipeline&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">on&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">push&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">branches&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">main&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">jobs&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">build&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">runs-on&lt;/span>: &lt;span style="color:#ae81ff">ubuntu-latest&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">steps&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Checkout code&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uses&lt;/span>: &lt;span style="color:#ae81ff">actions/checkout@v2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Unlock secrets&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">uses&lt;/span>: &lt;span style="color:#ae81ff">sliteteam/github-action-git-crypt-unlock@1.2.0&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">env&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">GIT_CRYPT_KEY&lt;/span>: &lt;span style="color:#ae81ff">${{ secrets.GIT_CRYPT_KEY }}&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">uses&lt;/span>: &lt;span style="color:#ae81ff">cachix/install-nix-action@v31&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">with&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">github_access_token&lt;/span>: &lt;span style="color:#ae81ff">${{ secrets.GITHUB_TOKEN }}&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Run nix build&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: &lt;span style="color:#ae81ff">nix build&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Show tree structure of result directory&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> echo &amp;#34;Tree structure of result directory:&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> tree result&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#f92672">name&lt;/span>: &lt;span style="color:#ae81ff">Run the main file (prints a message from the private repo)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">run&lt;/span>: |&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> echo &amp;#34;Running the main file...&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> nix run nixpkgs#nodejs -- result/index.js&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>I know, it looks a bit daunting if you&amp;rsquo;ve never done something like this, but in all honesty it&amp;rsquo;s not too bad.&lt;br>
+Basically it downloads the repo, unlocks the secrets, installs Nix, builds the project, and runs it.&lt;br>
+To decrypt the secrets I just had to add &lt;code>GIT_CRYPT_KEY&lt;/code> to my GitHub repository secrets.&lt;/p>
+&lt;h2 id="so-what-is-the-secret-why-did-this-take-me-so-long-to-figure-out">So what is the secret? Why did this take me so long to figure out?&lt;/h2>
+&lt;p>In Nix there are two main kinds of derivations: the normal ones you use every day, and &lt;strong>FODs&lt;/strong>.&lt;/p>
+&lt;p>&lt;strong>FOD&lt;/strong> stands for &lt;em>Fixed-Output Derivation&lt;/em>, and what makes them special is that they, unlike normal derivations, &lt;em>have network access&lt;/em>. They can download files for you (such as private and public dependencies) and then store them in the Nix store, to be used by your normal derivations.&lt;/p>
+&lt;p>Does that mean FODs are not pure? No, actually they are. The only difference—and the way you define FODs—is by adding&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>outputHash &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;YOUR_HASH_HERE&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>to any derivation. That means you &lt;em>know&lt;/em> what the output of the derivation will be, and you can verify that the output is correct.&lt;/p>
+&lt;p>So the way to solve the whole issue is by using two derivations:&lt;/p>
+&lt;ol>
+&lt;li>&lt;strong>One FOD&lt;/strong> that has network access, fetches your dependencies, and stores them in the Nix store.&lt;/li>
+&lt;li>&lt;strong>One normal derivation&lt;/strong> that has access to those stored dependencies and builds your project.&lt;/li>
+&lt;/ol>
+&lt;h3 id="flakenix">&lt;code>flake.nix&lt;/code>&lt;/h3>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> description &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;Node.js project with private npm registry support&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> inputs &lt;span style="color:#f92672">=&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> flake-parts&lt;span style="color:#f92672">.&lt;/span>url &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;github:hercules-ci/flake-parts&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nixpkgs&lt;span style="color:#f92672">.&lt;/span>url &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;github:NixOS/nixpkgs/nixos-24.11&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> outputs &lt;span style="color:#f92672">=&lt;/span> { flake-parts&lt;span style="color:#f92672">,&lt;/span> &lt;span style="color:#f92672">...&lt;/span> } &lt;span style="color:#f92672">@&lt;/span> inputs:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> flake-parts&lt;span style="color:#f92672">.&lt;/span>lib&lt;span style="color:#f92672">.&lt;/span>mkFlake { &lt;span style="color:#66d9ef">inherit&lt;/span> inputs; } {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> systems &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;aarch64-darwin&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;x86_64-linux&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> perSystem &lt;span style="color:#f92672">=&lt;/span> { pkgs&lt;span style="color:#f92672">,&lt;/span> &lt;span style="color:#f92672">...&lt;/span> }: &lt;span style="color:#66d9ef">let&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nodeEnv &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> export HOME=&amp;#34;$NIX_BUILD_TOP&amp;#34;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> export YARN_ENABLE_TELEMETRY=0
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn config set enableGlobalCache false
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> supportedArchitecturesJSON &lt;span style="color:#f92672">=&lt;/span> builtins&lt;span style="color:#f92672">.&lt;/span>toJSON {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> os &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;darwin&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;linux&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> cpu &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;arm&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;arm64&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;ia32&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;x64&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> libc &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;glibc&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;musl&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># 1. FOD: fetch dependencies&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> yarnOfflineCache &lt;span style="color:#f92672">=&lt;/span> pkgs&lt;span style="color:#f92672">.&lt;/span>stdenvNoCC&lt;span style="color:#f92672">.&lt;/span>mkDerivation {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> name &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;super-nix-test-deps&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> src &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">./.&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nativeBuildInputs &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">with&lt;/span> pkgs; [ yarn-berry ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> NODE_EXTRA_CA_CERTS &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>pkgs&lt;span style="color:#f92672">.&lt;/span>cacert&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">/etc/ssl/certs/ca-bundle.crt&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> configurePhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook preConfigure
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span>&lt;span style="color:#e6db74">${&lt;/span>nodeEnv&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn config set cacheFolder $out
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn config set supportedArchitectures --json &amp;#39;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>supportedArchitecturesJSON&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook postConfigure
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> buildPhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook preBuild
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn install --immutable --mode skip-build
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook postBuild
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> dontInstall &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">true&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> outputHashAlgo &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;sha256&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> outputHashMode &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;recursive&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> outputHash &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;sha256-WLURUf/xCDOEPOs5jKPAhYfv7Qvy+yxNMMLsq6lLCEQ=&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">in&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># 2. Normal derivation: build the project&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> packages&lt;span style="color:#f92672">.&lt;/span>default &lt;span style="color:#f92672">=&lt;/span> pkgs&lt;span style="color:#f92672">.&lt;/span>stdenv&lt;span style="color:#f92672">.&lt;/span>mkDerivation {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> pname &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;yarn-nix-private-repo-test&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> version &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;0.0.1&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> src &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">./.&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nativeBuildInputs &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">with&lt;/span> pkgs; [ nodejs yarn-berry ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> configurePhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook preConfigure
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &lt;/span>&lt;span style="color:#e6db74">${&lt;/span>nodeEnv&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn config set cacheFolder &lt;/span>&lt;span style="color:#e6db74">${&lt;/span>yarnOfflineCache&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook postConfigure
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> buildPhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook preBuild
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> yarn install --immutable --immutable-cache
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> runHook postBuild
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> installPhase &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#39;&amp;#39;
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> mkdir -p $out
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> cp -r . $out/
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#e6db74"> &amp;#39;&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Yes, it&amp;rsquo;s quite long and seems daunting, but the main bits you need to understand are:&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>&lt;code>yarnOfflineCache&lt;/code>&lt;/strong> is the FOD that fetches the dependencies and stores them in the Nix store.&lt;/li>
+&lt;li>&lt;strong>&lt;code>packages.default&lt;/code>&lt;/strong> is the derivation that builds your project. It uses the cache via&lt;br>
+&lt;code>yarn config set cacheFolder ${yarnOfflineCache}&lt;/code>.&lt;/li>
+&lt;/ul>
+&lt;h2 id="ok-so-what-do-i-need-to-do-now-if-i-want-to-update-my-dependencies">Ok, so what do I need to do now if I want to update my dependencies?&lt;/h2>
+&lt;p>Quite simple, actually:&lt;/p>
+&lt;ol>
+&lt;li>Work on the project as normal and run &lt;code>yarn install&lt;/code> to update &lt;code>yarn.lock&lt;/code>.&lt;/li>
+&lt;li>Delete the value of &lt;code>outputHash&lt;/code> in the &lt;code>yarnOfflineCache&lt;/code> derivation.&lt;/li>
+&lt;li>Run &lt;code>nix build&lt;/code>. Nix will tell you the new hash—copy it back into &lt;code>outputHash&lt;/code>.&lt;/li>
+&lt;li>Commit the changes. Your colleagues and CI can now run &lt;code>nix build&lt;/code> without issues!&lt;/li>
+&lt;/ol>
+&lt;p>If you want to see the whole project on GitHub, so it&amp;rsquo;s easier to copy-paste, you can find it &lt;a href="https://github.com/tymscar/Nix-Yarn-Private-Repo-Example">here&lt;/a>.&lt;/p>
+&lt;p>Special thanks to &lt;a href="https://github.com/TeamWolfyta">Kieran&lt;/a> for spending a couple of hours with me on a Discord call trying to figure this out. Sorry it took this long to post the solution—it’s been weeks, but the part we were missing was the FOD with the output hash.&lt;/p></content></item><item><title>Simulating soapy water</title><link>/posts/soapsim/</link><pubDate>Thu, 04 Apr 2024 12:00:00 +0000</pubDate><guid>/posts/soapsim/</guid><description>&lt;p>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?&lt;/p>
+&lt;p>No, just me? Well perhaps this blogpost isn&amp;rsquo;t for you then. Otherwise, buckle up!&lt;/p>
+&lt;p>The experiment that caught my eye this time around was this video of a plate of water, with some pepper sprinkled on top uniformly, that when touched with a soapy finger, makes the pepper repel.&lt;/p></description><content>&lt;p>Do you ever just scroll mindlessly online and stumble upon a satisfying video about physics and you can&amp;rsquo;t help but have that urge to reproduce it in code?&lt;/p>
 &lt;p>No, just me? Well perhaps this blogpost isn&amp;rsquo;t for you then. Otherwise, buckle up!&lt;/p>
 &lt;p>The experiment that caught my eye this time around was this video of a plate of water, with some pepper sprinkled on top uniformly, that when touched with a soapy finger, makes the pepper repel.&lt;/p>
 &lt;div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-&lt;iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen="allowfullscreen" loading="eager" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/ho0o7H6dXSU?autoplay=0&amp;controls=1&amp;end=0&amp;loop=0&amp;mute=0&amp;start=0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" title="YouTube video"
->&lt;/iframe>
+&lt;iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" loading="eager" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/ho0o7H6dXSU?autoplay=0&amp;amp;controls=1&amp;amp;end=0&amp;amp;loop=0&amp;amp;mute=0&amp;amp;start=0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" title="YouTube video">&lt;/iframe>
 &lt;/div>
 &lt;p>Now obviously coding a whole fluid simulation with particles and forces was too much to do just for a silly visualization, so I decided on writing a simple force repellent simulation in Javascript.&lt;/p>
 &lt;p>I quickly then noticed that the performance, while manageable, wasn&amp;rsquo;t fantastic, so I ended up writing the core logic again in Rust, and embedding it onto the page with WASM. This was quite a lot of fun, and the end result was a simulation more than twice as fast.&lt;/p>

@@ -1,4 +1,197 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on The Tymscar Blog</title><link>/posts/</link><description>Recent content in Posts on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Fri, 02 May 2025 16:50:41 +0000</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>Using Nix to build JS/TS projects with private dependencies</title><link>/posts/nixprivatenpmrepos/</link><pubDate>Fri, 02 May 2025 16:50:41 +0000</pubDate><guid>/posts/nixprivatenpmrepos/</guid><description>&lt;p>&lt;img src="/nix-private-npm-repos/githubActioonsSuccess.png" alt="“Running code from a private repo”)">&lt;/p>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on The Tymscar Blog</title><link>/posts/</link><description>Recent content in Posts on The Tymscar Blog</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 15 Jun 2025 21:39:22 +0100</lastBuildDate><atom:link href="/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>Public Dotfiles, Private Secrets: My Nix OS Docker Workflow</title><link>/posts/nixosdockerwithsecrets/</link><pubDate>Sun, 15 Jun 2025 21:39:22 +0100</pubDate><guid>/posts/nixosdockerwithsecrets/</guid><description>&lt;p>For the longest time I ran every container in my homelab on Proxmox. It did the job, but because I use NixOS on my main workstation and NixDarwin on my laptop, I eventually wanted the lab to follow the same declarative model. A few months ago I switched those machines to NixOS as well. Everything went smoothly except for one thing: moving the containers themselves.&lt;/p>
+&lt;p>The problem was secrets. I keep my entire configuration, including the lab, in a public &lt;a href="https://github.com/tymscar/dotfiles">dotfiles repository&lt;/a>. Many of the containers need tokens such as Cloudflare, API keys, you name it, that obviously must not end up on GitHub. Every time I sat down to migrate the stack I put it off for this single reason.&lt;/p></description><content>&lt;p>For the longest time I ran every container in my homelab on Proxmox. It did the job, but because I use NixOS on my main workstation and NixDarwin on my laptop, I eventually wanted the lab to follow the same declarative model. A few months ago I switched those machines to NixOS as well. Everything went smoothly except for one thing: moving the containers themselves.&lt;/p>
+&lt;p>The problem was secrets. I keep my entire configuration, including the lab, in a public &lt;a href="https://github.com/tymscar/dotfiles">dotfiles repository&lt;/a>. Many of the containers need tokens such as Cloudflare, API keys, you name it, that obviously must not end up on GitHub. Every time I sat down to migrate the stack I put it off for this single reason.&lt;/p>
+&lt;p>One free weekend I finally dug into secret management on NixOS and discovered &lt;a href="https://github.com/ryantm/agenix">Agenix&lt;/a>. At first the plan was to write a quick post about Agenix alone, but it made more sense to walk through an end-to-end example: adding a brand-new service, Grafana, to the lab while keeping every line of infrastructure code public.&lt;/p>
+&lt;h2 id="adding-a-new-service">Adding a new service!&lt;/h2>
+&lt;p>The easiest way to explain the workflow is to follow it start to finish. Grafana is a nice self-contained example, so we will add that.&lt;/p>
+&lt;p>First, here is the minimal subset of the repository we will touch. I generated this tree view by stripping unrelated files.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>.
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>├── .gitignore
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>├── flake.nix
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>├── apps
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ └── nixos
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ └── docker
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ ├── default.nix
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ └── grafana
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ ├── data/
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ ├── default.nix
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ └── docker-compose.yml
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>├── devices
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ └── farnsworth
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ ├── configurations.nix
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>│ └── secrets.nix
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>└── secrets
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ├── docker
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> │ └── grafana.age
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> └── secrets.nix
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="setting-up-agenix">Setting up Agenix&lt;/h2>
+&lt;p>Agenix manages secrets with age-encrypted files that are transparently decrypted at activation time. You commit only the ciphertext while the private key never leaves the host.&lt;/p>
+&lt;p>Add it to the flake inputs and enable its module. I have replaced unrelated code with ellipses.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> description &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;Tymscar&amp;#39;s system configuration&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> inputs &lt;span style="color:#f92672">=&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># ... other inputs ...&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> agenix &lt;span style="color:#f92672">=&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> url &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;github:ryantm/agenix&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> inputs&lt;span style="color:#f92672">.&lt;/span>nixpkgs&lt;span style="color:#f92672">.&lt;/span>follows &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;nixpkgs&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> outputs &lt;span style="color:#f92672">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># ... other outputs ...&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> agenix&lt;span style="color:#f92672">,&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">...&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">let&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nixosDeviceConfig &lt;span style="color:#f92672">=&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> device:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">let&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> system &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;x86_64-linux&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> linuxUsername &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;tymscar&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">in&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>device&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">&amp;#34;&lt;/span> &lt;span style="color:#f92672">=&lt;/span> nixpkgs&lt;span style="color:#f92672">.&lt;/span>lib&lt;span style="color:#f92672">.&lt;/span>nixosSystem {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">inherit&lt;/span> system;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> specialArgs &lt;span style="color:#f92672">=&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">inherit&lt;/span> device;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> accountUsername &lt;span style="color:#f92672">=&lt;/span> linuxUsername;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> modules &lt;span style="color:#f92672">=&lt;/span> [
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> agenix&lt;span style="color:#f92672">.&lt;/span>nixosModules&lt;span style="color:#f92672">.&lt;/span>default
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># ... other modules ...&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># ... rest of the configuration ...&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">in&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># ... nixosConfigurations and darwinConfigurations ...&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Create a top-level secrets directory. Its heart is secrets.nix, which declares which public keys may decrypt which file.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">let&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> one-password-agenix &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPeudL4pX9bw/g9apBN7uOBGjbqOJW/pxLKvZNiAMVWs&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> farnsworth &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAe9FWKQXgkfRiGEw8P1ajzg5vx4Wg8c/5gMOLAyEGua&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">in&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">&amp;#34;docker/grafana.age&amp;#34;&lt;/span>&lt;span style="color:#f92672">.&lt;/span>publicKeys &lt;span style="color:#f92672">=&lt;/span> [
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> one-password-agenix
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> farnsworth
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The first key lives in 1Password (you can keep yours wherever you want. At first I wanted to keep it on my yubikey, but there are still issues with that approach. I will probably make an update on that&amp;hellip;), so I can always re-encrypt or add devices. The second is the homelab host itself.&lt;/p>
+&lt;p>Inside &lt;code>secrets/docker&lt;/code> run Agenix to create the encrypted file.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>nix run github:ryantm/agenix -- -e grafana.age --identity /home/tymscar/.ssh/id_agenix
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Your editor opens a blank buffer. Paste the environment variables Grafana needs, one KEY=value per line. In my case there are three as you can see below:&lt;/p>
+&lt;p>&lt;img src="/nixos-docker-agenix/agenixSecrets.png" alt="“Age secrets in your editor”">&lt;/p>
+&lt;p>Next import those secrets into the host configuration. In &lt;code>devices/farnsworth/configurations.nix&lt;/code> add a line to pull in &lt;code>secrets.nix&lt;/code>.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>imports &lt;span style="color:#f92672">=&lt;/span> [
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">./hardware-configuration.nix&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">./secrets.nix&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e"># other imports ...&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ];
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Then create &lt;code>devices/farnsworth/secrets.nix&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>{ &lt;span style="color:#f92672">...&lt;/span> }:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> age&lt;span style="color:#f92672">.&lt;/span>secrets &lt;span style="color:#f92672">=&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> docker-grafana&lt;span style="color:#f92672">.&lt;/span>file &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">../../secrets/docker/grafana.age&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Whenever you introduce another service you simply append another attribute.&lt;/p>
+&lt;p>And believe it or not, that&amp;rsquo;s basically it when it comes to the secrets. Now the next thing we have to do is actually add the Grafana service.&lt;/p>
+&lt;h2 id="adding-the-grafana-service">Adding the Grafana service&lt;/h2>
+&lt;p>I keep every container under &lt;code>apps/nixos/docker&lt;/code>. The &lt;code>default.nix&lt;/code> there enables Docker on the host and imports one subdirectory per service.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>{ &lt;span style="color:#f92672">...&lt;/span> }:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> imports &lt;span style="color:#f92672">=&lt;/span> [
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#e6db74">./grafana&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> virtualisation&lt;span style="color:#f92672">.&lt;/span>docker&lt;span style="color:#f92672">.&lt;/span>enable &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">true&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Because the folder &lt;code>apps/nixos/docker/grafana&lt;/code> contains its own &lt;code>default.nix&lt;/code>, Nix treats the directory as a module.
+Here is that file:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-nix" data-lang="nix">&lt;span style="display:flex;">&lt;span>{ pkgs&lt;span style="color:#f92672">,&lt;/span> config&lt;span style="color:#f92672">,&lt;/span> &lt;span style="color:#f92672">...&lt;/span> }:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">let&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> dockerEnv &lt;span style="color:#f92672">=&lt;/span> config&lt;span style="color:#f92672">.&lt;/span>age&lt;span style="color:#f92672">.&lt;/span>secrets&lt;span style="color:#f92672">.&lt;/span>docker-grafana&lt;span style="color:#f92672">.&lt;/span>path;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">in&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> systemd&lt;span style="color:#f92672">.&lt;/span>services&lt;span style="color:#f92672">.&lt;/span>grafana &lt;span style="color:#f92672">=&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> description &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;Grafana&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> after &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;network.target&amp;#34;&lt;/span> &lt;span style="color:#e6db74">&amp;#34;docker.service&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> wants &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;docker.service&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> serviceConfig &lt;span style="color:#f92672">=&lt;/span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ExecStart &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>pkgs&lt;span style="color:#f92672">.&lt;/span>docker&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">/bin/docker compose --env-file &lt;/span>&lt;span style="color:#e6db74">${&lt;/span>dockerEnv&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74"> -f docker-compose.yml up --force-recreate&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ExecStop &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;&lt;/span>&lt;span style="color:#e6db74">${&lt;/span>pkgs&lt;span style="color:#f92672">.&lt;/span>docker&lt;span style="color:#e6db74">}&lt;/span>&lt;span style="color:#e6db74">/bin/docker compose -f docker-compose.yml down&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> WorkingDirectory &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;/home/tymscar/dotfiles/apps/nixos/docker/grafana&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Restart &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;always&amp;#34;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> wantedBy &lt;span style="color:#f92672">=&lt;/span> [ &lt;span style="color:#e6db74">&amp;#34;multi-user.target&amp;#34;&lt;/span> ];
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>I prefer to run ordinary docker compose exactly as on any other distro but let systemd own the lifecycle. The only special part is the &lt;code>--env-file&lt;/code> flag, which points at the decrypted Age file supplied by Nix.&lt;/p>
+&lt;p>The compose file itself is vanilla:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-yaml" data-lang="yaml">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">version&lt;/span>: &lt;span style="color:#e6db74">&amp;#34;3.5&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">services&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">grafana&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">image&lt;/span>: &lt;span style="color:#ae81ff">grafana/grafana-oss:latest&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">container_name&lt;/span>: &lt;span style="color:#ae81ff">grafana&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">restart&lt;/span>: &lt;span style="color:#ae81ff">unless-stopped&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">volumes&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">data:/var/lib/grafana&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">environment&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">GF_AUTH_ANONYMOUS_ENABLED=false&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">GF_SERVER_ROOT_URL=https://${GRAFANA_HOST}/&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">networks&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">default&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#ae81ff">proxy&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">labels&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.enable=true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.grafana.entrypoints=http&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.grafana.rule=Host(`${GRAFANA_HOST}`)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.middlewares.grafana-https-redirect.redirectscheme.scheme=https&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.grafana.middlewares=grafana-https-redirect&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.grafana-secure.entrypoints=https&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.grafana-secure.rule=Host(`${GRAFANA_HOST}`)&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.grafana-secure.tls=true&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.routers.grafana-secure.service=grafana&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.http.services.grafana.loadbalancer.server.port=3000&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> - &lt;span style="color:#e6db74">&amp;#34;traefik.docker.network=proxy&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">volumes&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">data&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">networks&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">proxy&lt;/span>:
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#f92672">external&lt;/span>: &lt;span style="color:#66d9ef">true&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Finally add runtime directories like &lt;code>data/&lt;/code> to &lt;code>.gitignore&lt;/code> so they do not clutter the repo:&lt;/p>
+&lt;pre tabindex="0">&lt;code class="language-gitignore" data-lang="gitignore">apps/nixos/docker/grafana/data
+&lt;/code>&lt;/pre>&lt;h2 id="deploying-the-service">Deploying the service&lt;/h2>
+&lt;p>Deployment is the best part: commit, push and rebuild.&lt;/p>
+&lt;p>First stage the new files:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>git add .
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>git commit -m &lt;span style="color:#e6db74">&amp;#34;add grafana service&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Then switch the host to the new flake:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-bash" data-lang="bash">&lt;span style="display:flex;">&lt;span>sudo nixos-rebuild switch --flake &lt;span style="color:#e6db74">&amp;#39;.#farnsworth&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Seconds later Grafana is up behind Traefik and SSL. Browse to the hostname you set in the compose file and log in with the admin credentials from the secret. (You also want to point your domain to the Traefik instance, but again, outside the scope of this post)&lt;/p>
+&lt;p>&lt;img src="/nixos-docker-agenix/grafanaLogin.png" alt="“Logging into Grafana with the secret details”">&lt;/p>
+&lt;h2 id="conclusion">Conclusion&lt;/h2>
+&lt;p>This approach ticks every box for me: declarative infrastructure, secrets that stay secret, and plain old Docker where it makes sense. I could not find another write-up that pieced these parts together, so now there is one. Thanks for reading, and happy hacking.&lt;/p></content></item><item><title>Using Nix to build JS/TS projects with private dependencies</title><link>/posts/nixprivatenpmrepos/</link><pubDate>Fri, 02 May 2025 16:50:41 +0000</pubDate><guid>/posts/nixprivatenpmrepos/</guid><description>&lt;p>&lt;img src="/nix-private-npm-repos/githubActioonsSuccess.png" alt="“Running code from a private repo”)">&lt;/p>
 &lt;p>Nix is a great tool for building software, especially in professional settings because of the guarantees it comes with.&lt;br>
 For example, you can be sure that the software you build is reproducible and that it will work on any machine.&lt;/p>
 &lt;p>When it comes to building packages in the Nix world, you usually end up going with derivation builders already made for you.&lt;/p>

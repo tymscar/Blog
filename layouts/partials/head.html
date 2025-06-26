@@ -49,22 +49,17 @@
 <meta property="og:site_name" content="{{ $.Site.Title }}" />
 {{ $ogImage := "" }}
 {{ if .IsPage }}
-  {{ $images := .Resources.ByType "image" }}
-  {{ with $images.GetMatch "*feature*" }}
-    {{ $ogImage = .Permalink }}
-  {{ else }}
-    {{ with $images.GetMatch "{*cover*,*thumbnail*}" }}
-      {{ $ogImage = .Permalink }}
-    {{ else }}
-      {{ with $images.GetMatch "*" }}
-        {{ $ogImage = .Permalink }}
-      {{ end }}
-    {{ end }}
+  {{ $images := .Content | findRE `<img[^>]*src="([^"]+)"` }}
+  {{ if ge (len $images) 1 }}
+    {{ $firstImageTag := index $images 0 }}
+    {{ $ogImage = $firstImageTag | replaceRE `.*src="([^"]+)".*` "$1" }}
   {{ end }}
 {{ end }}
 
 {{ if not $ogImage }}
   {{ $ogImage = "img/favicon/favicon.ico" | absURL }}
+{{ else }}
+  {{ $ogImage = $ogImage | absURL }}
 {{ end }}
 
 <meta property="og:image" content="{{ $ogImage }}">

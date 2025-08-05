@@ -1,0 +1,460 @@
+<!doctype html><html lang=en><head><title>Running OpenAI's GPT-OSS locally: the good, the bad, and the loopy :: The Tymscar Blog</title><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="My experience running OpenAI's new open source GPT-OSS model locally, from impressive reasoning to frustrating tool calling failures"><meta name=keywords content="gpt-oss,openai,local-llm,rtx-4080,tool-calling,opencode"><meta name=robots content="noodp"><link rel=canonical href=/posts/gptossexperience/><link rel=stylesheet href=/css/buttons.min.86f6b4c106b6c6eb690ae5203d36b442c1f66f718ff4e8164fa86cf6c61ad641.css><link rel=stylesheet href=/css/code.min.d529ea4b2fb8d34328d7d31afc5466d5f7bc2f0bc9abdd98b69385335d7baee4.css><link rel=stylesheet href=/css/fonts.min.5bb7ed13e1d00d8ff39ea84af26737007eb5051b157b86fc24487c94f3dc8bbe.css><link rel=stylesheet href=/css/footer.min.eb8dfc2c6a7eafa36cd3ba92d63e69e849e2200e0002a228d137f236b09ecd75.css><link rel=stylesheet href=/css/gist.min.a751e8b0abe1ba8bc53ced52a38b19d8950fe78ca29454ea8c2595cf26aad5c0.css><link rel=stylesheet href=/css/header.min.75c7eb0e2872d95ff48109c6647d0223a38db52e2561dd87966eb5fc7c6bdac6.css><link rel=stylesheet href=/css/main.min.775ac2af004d44c22a6d000fbd1d9af529642f5cef27399d0280d180af2c2e9b.css><link rel=stylesheet href=/css/menu.min.310d32205bdedd6f43144e3c3273c9deecd238eba5f9108db5ea96ca0cfbe377.css><link rel=stylesheet href=/css/pagination.min.bbb986dbce00a5ce5aca0504b7925fc1c581992a4bf57f163e5d69cc1db7d836.css><link rel=stylesheet href=/css/post.min.ad50c7f4d00e7975918f37fc74c6029e1959a40d66fb5b2c6564a8715e985573.css><link rel=stylesheet href=/css/syntax.min.e9ab635cf918bc84b901eb65c0b2caa74c9544245e3647c1af5c129896ef276e.css><link rel=stylesheet href=/css/terminal.min.e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.css><link rel=stylesheet href=/css/terms.min.b81791663c3790e738e571cdbf802312390d30e4b1d8dc9d814a5b5454d0ac11.css><link rel=stylesheet href=/style.css><link rel="shortcut icon" href=/img/favicon/favicon.ico><link rel=apple-touch-icon href=/apple-touch-icon.png><meta name=twitter:card content="summary"><meta name=twitter:site content="google.com"><meta name=twitter:creator content="tymscar"><meta property="og:locale" content="en"><meta property="og:type" content="article"><meta property="og:title" content="Running OpenAI's GPT-OSS locally: the good, the bad, and the loopy"><meta property="og:description" content="My experience running OpenAI's new open source GPT-OSS model locally, from impressive reasoning to frustrating tool calling failures"><meta property="og:url" content="/posts/gptossexperience/"><meta property="og:site_name" content="The Tymscar Blog"><meta property="og:image" content="/img/favicon/favicon.ico"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="627"><meta property="article:published_time" content="2025-08-05 20:20:00 +0000 UTC"></head><body><div class="container center"><header class=header><div class=header__inner><div class=header__logo><a href=/><div class=logo>Tymscar</div></a></div></div></header><div class=content><article class=post><h1 class=post-title><a href=/posts/gptossexperience/>Running OpenAI&rsquo;s GPT-OSS locally: the good, the bad, and the loopy</a></h1><div class=post-meta><time class=post-date>2025-08-05</time><span class=post-author>Oscar Molnar</span><span class=post-reading-time>12 min read (2368 words)</span></div><span class=post-tags>#<a href=/tags/ai/>ai</a>&nbsp;
+#<a href=/tags/local-llm/>local-llm</a>&nbsp;
+#<a href=/tags/openai/>openai</a>&nbsp;
+#<a href=/tags/gpu/>gpu</a>&nbsp;
+#<a href=/tags/development/>development</a>&nbsp;</span><div class=post-content><div><p>OpenAI recently launched something I didn&rsquo;t expect to see from them: an open source model called <a href=https://openai.com/index/introducing-gpt-oss/>GPT-OSS</a>. After years of keeping their models locked behind APIs, they&rsquo;ve finally released both 20 billion and 120 billion parameter models that you can run entirely on your own hardware. Both can run on consumer grade hardware, but realistically most people would go with the 20 billion model since it fully fits into 16 gigs of VRAM on a GPU, which is why I went with that one as well.</p><p>Obviously, I had to try it out.</p><h2 id=getting-it-running-locally>Getting it running locally<a href=#getting-it-running-locally class=hanchor arialabel=Anchor>#</a></h2><p>The moment I saw that I could run this thing on my own computer, I knew I had to try it. I managed to fit the entire 20 billion parameter model onto my NVIDIA RTX 4080 GPU. The cool thing is that I can run this on my desktop and then use it over the network from my MacBook, which is exactly what I wanted to do.</p><p>I decided to test it through OpenCode, mainly because OpenAI was making bold claims about how great GPT-OSS is at tool calling, and everyone on Twitter was echoing the same sentiment. If it&rsquo;s really that good at tool calling, then using it in an agentic way through OpenCode seemed like the perfect test.</p><h2 id=the-setup-was-smooth-the-execution-not-so-much>The setup was smooth, the execution&mldr; not so much<a href=#the-setup-was-smooth-the-execution-not-so-much class=hanchor arialabel=Anchor>#</a></h2><p>Setting it up with OpenCode was a breeze. Everything seemed to work pretty damn well initially. The only issue? Whenever I would ask it something, it would be really, really bad at tool calling. It would mess up constantly.</p><p>For example, it would throw errors like this:</p><pre tabindex=0><code>AI_NoSuchToolError: Model tried to call unavailable tool &#39;webfetch&#39;. No tools are available.
+</code></pre><p>Out of all the errors, this one is the weirdest because WebFetch actually <em>is</em> a tool inside of OpenCode. So I&rsquo;m not entirely sure what happened there, perhaps it was just called with the wrong arguments or something.</p><p>One &ldquo;tool&rdquo; that it would always, always, always fail on is something called <code>Assistant</code>. I&rsquo;m not entirely sure why it does that, it might try to talk with sub-agents or something, but it would always try to call this tool called Assistant, even though it has a list of the available tools provided. It would always call it and fail:</p><pre tabindex=0><code>AI_NoSuchToolError: Model tried to call unavailable tool &#39;assistant&#39;. Available tools: edit, glob, grep, list, read, write, task, webfetch.
+</code></pre><h2 id=the-dreaded-infinite-loops>The dreaded infinite loops<a href=#the-dreaded-infinite-loops class=hanchor arialabel=Anchor>#</a></h2><p>It would also happen a lot where it would get itself into a loop, writing the same thing over and over and over again. Then when you&rsquo;d think it gets out of the loop, it would do something different for a second, and then go right back into the loop again.</p><p>Here&rsquo;s one example that perfectly captures this behavior (I&rsquo;ve commented out the non-JSON parts for better syntax highlighting):</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-javascript data-lang=javascript><span style=display:flex><span><span style=color:#75715e>// Write /Users/tymscar/Projects/todoreact/todo-cli/package.json
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;name&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;todo-cli&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;version&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;1.0.0&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;description&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;A tiny CLI todo‑app built with @inkjs/ink&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;main&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;index.js&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;type&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;module&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;scripts&#34;</span><span style=color:#f92672>:</span> {
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;start&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;node index.js&#34;</span>
+</span></span><span style=display:flex><span>  },
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;dependencies&#34;</span><span style=color:#f92672>:</span> {
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;@inkjs/ink&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;^4.2.0&#34;</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Write /Users/tymscar/Projects/todoreact/todo-cli/package.json
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;name&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;todo-cli&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;version&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;1.0.0&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;description&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;A tiny CLI todo‑app built with @inkjs/ink&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;main&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;index.js&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;type&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;module&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;scripts&#34;</span><span style=color:#f92672>:</span> {
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;start&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;node index.js&#34;</span>
+</span></span><span style=display:flex><span>  },
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;dependencies&#34;</span><span style=color:#f92672>:</span> {
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;@inkjs/ink&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;^4.2.0&#34;</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Glob  (pattern=**/*)
+</span></span></span><span style=display:flex><span><span style=color:#75715e>// /Users/tymscar/Projects/todoreact/todo-cli/package.json
+</span></span></span><span style=display:flex><span><span style=color:#75715e>// We need to write two files. Let&#39;s read existing? Let&#39;s check if folder exists.
+</span></span></span><span style=display:flex><span><span style=color:#75715e>// gpt-oss:20b (09:18 PM)
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Glob /Users/tymscar/Projects/todoreact (pattern=todo-cli)
+</span></span></span><span style=display:flex><span><span style=color:#75715e>// No files found
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Write /Users/tymscar/Projects/todoreact/todo-cli/package.json
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;name&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;todo-cli&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;version&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;1.0.0&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;description&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;A tiny CLI todo‑app built with @inkjs/ink&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;main&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;index.js&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;type&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;module&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;scripts&#34;</span><span style=color:#f92672>:</span> {
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;start&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;node index.js&#34;</span>
+</span></span><span style=display:flex><span>  },
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;dependencies&#34;</span><span style=color:#f92672>:</span> {
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;@inkjs/ink&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;^4.2.0&#34;</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Write /Users/tymscar/Projects/todoreact/todo-cli/package.json
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;name&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;todo-cli&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;version&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;1.0.0&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;description&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;A tiny CLI todo‑app built with @inkjs/ink&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;main&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;index.js&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;type&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;module&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;scripts&#34;</span><span style=color:#f92672>:</span> {
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;start&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;node index.js&#34;</span>
+</span></span><span style=display:flex><span>  },
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;dependencies&#34;</span><span style=color:#f92672>:</span> {
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;@inkjs/ink&#34;</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#34;^4.2.0&#34;</span>
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>After chatting with other users on the OpenCode Discord server, we kind of decided that tool calling really isn&rsquo;t this model&rsquo;s strongest suit.</p><h2 id=where-it-actually-shines>Where it actually shines<a href=#where-it-actually-shines class=hanchor arialabel=Anchor>#</a></h2><p>So I wanted to give it a go in just normal chat mode and see how well it fares there. I was actually pleasantly surprised.</p><p>For example, I tried the infamous question about how many R&rsquo;s are there in &ldquo;strawberry&rdquo; and it got it right. You could argue that maybe this is something that was already very common on the internet, so it probably just remembers it. But then I tried asking it how many R&rsquo;s are there in &ldquo;strawberry&rdquo; typed as &ldquo;strawbery,&rdquo; and it still got the correct answer.</p><p>Another really cool thing I asked it to do was to write me a sentence that contains the number of letters (not numbers, spaces, or punctuation) that the sentence has inside of the sentence. This is the answer it came up with:</p><blockquote><p>&ldquo;This sentence contains 27 letters.&rdquo;</p></blockquote><p>Pretty impressive!</p><h2 id=the-dancing-penguin-experiment>The dancing penguin experiment<a href=#the-dancing-penguin-experiment class=hanchor arialabel=Anchor>#</a></h2><p>I asked it to create me an SVG of a dancing penguin. While it did give me something that was moving and had sort of the correct colors, the penguin was a bit off-screen:</p><div style="text-align:center;margin:20px 0"><svg width="200" height="300" viewBox="0 0 200 300" style="max-width:100%;height:auto"><rect width="100%" height="100%" fill="#e0f7ff"/><g id="penguin" transform="translate(100,200)"><ellipse cx="0" cy="0" rx="40" ry="60" fill="#111"/><ellipse cx="0" cy="-10" rx="34" ry="55" fill="#222"/><ellipse cx="0" cy="20" rx="20" ry="30" fill="#fff"/><circle cx="0" cy="-70" r="30" fill="#111"/><circle cx="0" cy="-70" r="25" fill="#222"/><circle cx="-7" cy="-75" r="5" fill="#fff"/><circle cx="7" cy="-75" r="5" fill="#fff"/><circle cx="-7" cy="-75" r="2" fill="#000"/><circle cx="7" cy="-75" r="2" fill="#000"/><path d="M-30 0a20 30 0 01-5 30" stroke="#111" stroke-width="6" fill="none"/><path d="M30 0a20 30 0 005 30" stroke="#111" stroke-width="6" fill="none"/><polygon points="-10,70 -5,80 5,80 10,70 -10,70" fill="#ff5c00"/><polygon points="10,70 5,80 -5,80 -10,70 10,70" fill="#ff5c00"/><animateTransform attributeName="transform" type="rotate" dur=".8s" values="0 0 0; -20 0 0; 20 0 0; 0 0 0" repeatCount="indefinite"/></g></svg></div><p>I then asked it to try again, but this time without animation, just give me a simple SVG with a penguin. This is where it got into one of those loops again, where it forgot that I was asking for an SVG and started hallucinating ASCII art:</p><pre tabindex=0><code>   .--.
+  (o   o)
+   |~|
+  /| |\
+   _|_
+
+
+No. Let me design a more classic penguin.
+
+
+   _
+ (&#39;v&#39;)
+//-\\
+(   )
+
+No. Let&#39;s use a more known ASCII penguin:
+
+   _
+ (&#39;v&#39;)
+  \ /
+   &#34;
+
+Better maybe:
+
+  /\_/\
+ ( o.o )
+  &gt; ^ &lt;
+
+But that&#39;s cat. We&#39;ll use penguin: A classic little penguin:
+
+   _
+  /_\
+ (o o)
+  \_/
+   /\
+
+Better maybe:
+
+  /\_/\
+ ( @ @ )
+  \   /
+   ~~~
+
+No, cat. I&#39;d prefer:
+
+   .--.
+  /--\
+( o  o )
+  \   /
+   \_/
+
+No.
+
+Let&#39;s just do:
+
+   __
+  /  \
+ (    )
+  \__/
+
+This is too generic. Let&#39;s search memory of a known ASCII penguin:
+
+   __
+ _(  )_
+( \  / )
+ \____/
+
+No.
+
+We can also use the one:
+
+   __
+  /  \
+ ( o  o )
+  \  /
+   \/
+
+Alright, maybe simpler: The penguin we can provide like:
+
+   _
+ _( )_
+(_   _)
+  \ /
+   &#34;
+
+It&#39;s probably too abstract. I&#39;ll produce a small penguin that fits in 60 columns max.
+
+I think I want to give something like:
+
+   .
+  / \\_
+ ( o_o)
+/  &gt;^&lt; \
+
+Hmm.
+
+Better we can produce a simpler minimal one:
+
+   __
+  (oo)
+  /||\
+
+But that&#39;s an owl? No.
+
+Actually, consider a simple cartoon penguin:
+
+  _
+ (&#39;-o-)
+  (   )
+  |   |
+
+Maybe it&#39;s okay.
+
+Let&#39;s give a simple, widely recognized ASCII penguin from e.g., &#34;Tux&#34; style:
+
+  .--.
+ ( o  o )
+  &gt;  &lt;
+
+But that&#39;s not perfect.
+
+Ok we can provide a typical &#34;Penguin ASCII Art&#34; e.g.:
+
+   __
+  /  \
+ (    )
+ \    /
+   \/
+
+Hmm.
+
+Maybe the best is:
+
+ /\_/\
+( o.o )
+ &gt; ^ &lt;
+
+No.
+
+But we can also just give:
+
+   _
+ _/ \_
+(  o  )
+ \___/
+
+Alright.
+
+We should probably accompany with apology: &#34;I&#39;m sorry, here&#39;s a correct version.&#34;
+
+We can also ask if they want more lines.
+
+Let&#39;s respond: provide a simple, short ASCII penguin that fits.
+
+Let&#39;s give:
+
+   _
+  (o )
+  /|\
+  / \
+
+Wait.
+
+Let&#39;s design one:
+
+   _
+ (\_/)
+ (o o)
+  \_/
+
+Ok we can&#39;t decide. I&#39;d probably use a known &#34;penguin&#34; like:
+
+   ___
+  /___\
+ (o o )
+  \_/
+</code></pre><p>I asked again, and this time it did give me an SVG of a penguin, which honestly looked alright. It wasn&rsquo;t perfect or anything, but definitely better:</p><svg viewBox="0 0 200 200" style="max-width:300px;display:block;margin:20px auto"><g><ellipse cx="100" cy="100" rx="45" ry="70" fill="#000"/><ellipse cx="100" cy="100" rx="45" ry="35" fill="#fff"/><circle cx="85" cy="70" r="8" fill="#fff"/><circle cx="85" cy="70" r="4" fill="#000"/><circle cx="84" cy="69" r="1" fill="#fff"/><circle cx="115" cy="70" r="8" fill="#fff"/><circle cx="115" cy="70" r="4" fill="#000"/><circle cx="114" cy="69" r="1" fill="#fff"/><polygon points="100,80 80,90 120,90" fill="orange"/><ellipse cx="70" cy="110" rx="18" ry="24" fill="#000" transform="rotate(-30 70 110)"/><ellipse cx="130" cy="110" rx="18" ry="24" fill="#000" transform="rotate(30 130 110)"/><polygon points="85,170 75,190 95,190" fill="orange"/><polygon points="115,170 105,190 125,190" fill="orange"/></g></svg><h2 id=testing-its-knowledge-and-hallucination-tendencies>Testing its knowledge and hallucination tendencies<a href=#testing-its-knowledge-and-hallucination-tendencies class=hanchor arialabel=Anchor>#</a></h2><p>Out of curiosity to see how well it actually remembers things and how likely it is to hallucinate, I tried asking it about very specific information without giving it internet access. I asked when the first McDonald&rsquo;s opened in my hometown, and it gave me an answer and was very adamant about it. In reality, it was completely hallucinated, the URL doesn&rsquo;t actually exist:</p><blockquote><p>A 2020 retrospective piece notes: &ldquo;Yesterday (20 October 2000) the first McDonald&rsquo;s in Timisoara opened its doors in the city centre.&rdquo;
+<em>Link:</em> <a href=https://timisoaralive.ro/2000/10/20/first-mcdonalds-timisoara>https://timisoaralive.ro/2000/10/20/first-mcdonalds-timisoara</a></p></blockquote><h2 id=the-coding-challenge>The coding challenge<a href=#the-coding-challenge class=hanchor arialabel=Anchor>#</a></h2><p>I then tried something that was way, way more difficult: I asked it to write a program that would take in a URL, do a request, and then print out the response headers from that request. It didn&rsquo;t work on the first try. I gave it a couple of hints (which I realized maybe I shouldn&rsquo;t have), and it still didn&rsquo;t work. I tried to fix a couple of things, and on the third attempt, it actually worked.</p><p>Here&rsquo;s the final working code:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#75715e>#define _POSIX_C_SOURCE 200112L   </span><span style=color:#75715e>/* for getaddrinfo, read, etc. */</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;stdio.h&gt;</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;stdlib.h&gt;</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;string.h&gt;</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;unistd.h&gt;           /* close, read, write, ... */</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;errno.h&gt;</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;sys/types.h&gt;</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;sys/socket.h&gt;</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;netdb.h&gt;</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;arpa/inet.h&gt;</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#include</span> <span style=color:#75715e>&lt;strings.h&gt;          /* strncasecmp */</span><span style=color:#75715e>
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#define BUF_SIZE 4096
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* ---------- URL parsing ---------- */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>static</span> <span style=color:#66d9ef>int</span> <span style=color:#a6e22e>parse_url</span>(<span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>url,
+</span></span><span style=display:flex><span>                     <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>host, <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>port, <span style=color:#66d9ef>char</span> <span style=color:#f92672>**</span>path)
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>p, <span style=color:#f92672>*</span>path_start;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>hostname, <span style=color:#f92672>*</span>portnum, <span style=color:#f92672>*</span>q;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* 1. split scheme://host[:port]/path  */</span>
+</span></span><span style=display:flex><span>    p <span style=color:#f92672>=</span> <span style=color:#a6e22e>strstr</span>(url, <span style=color:#e6db74>&#34;://&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>p) {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fprintf</span>(stderr, <span style=color:#e6db74>&#34;Error: URL must have a scheme (e.g. http://)</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* Verify scheme is exactly &#34;http&#34; */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (p <span style=color:#f92672>-</span> url <span style=color:#f92672>!=</span> <span style=color:#ae81ff>4</span> <span style=color:#f92672>||</span> <span style=color:#a6e22e>strncasecmp</span>(url, <span style=color:#e6db74>&#34;http&#34;</span>, <span style=color:#ae81ff>4</span>) <span style=color:#f92672>!=</span> <span style=color:#ae81ff>0</span>) {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fprintf</span>(stderr, <span style=color:#e6db74>&#34;Error: Only http:// URLs are supported.</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* 2. extract host[:port] */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>hostport_end <span style=color:#f92672>=</span> <span style=color:#a6e22e>strchr</span>(p <span style=color:#f92672>+</span> <span style=color:#ae81ff>3</span>, <span style=color:#e6db74>&#39;/&#39;</span>);   <span style=color:#75715e>/* first slash after scheme */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>size_t</span> hostport_len;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (hostport_end) {
+</span></span><span style=display:flex><span>        hostport_len <span style=color:#f92672>=</span> hostport_end <span style=color:#f92672>-</span> (p <span style=color:#f92672>+</span> <span style=color:#ae81ff>3</span>);
+</span></span><span style=display:flex><span>        path_start   <span style=color:#f92672>=</span> hostport_end;           <span style=color:#75715e>/* includes the &#39;/&#39; */</span>
+</span></span><span style=display:flex><span>    } <span style=color:#66d9ef>else</span> {
+</span></span><span style=display:flex><span>        hostport_len <span style=color:#f92672>=</span> <span style=color:#a6e22e>strlen</span>(p <span style=color:#f92672>+</span> <span style=color:#ae81ff>3</span>);
+</span></span><span style=display:flex><span>        path_start   <span style=color:#f92672>=</span> NULL;                   <span style=color:#75715e>/* no path =&gt; &#34;/&#34; */</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    hostname <span style=color:#f92672>=</span> <span style=color:#a6e22e>malloc</span>(hostport_len <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>hostname) <span style=color:#66d9ef>return</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>strncpy</span>(hostname, p <span style=color:#f92672>+</span> <span style=color:#ae81ff>3</span>, hostport_len);
+</span></span><span style=display:flex><span>    hostname[hostport_len] <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;\0&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* 3. split host and port */</span>
+</span></span><span style=display:flex><span>    q <span style=color:#f92672>=</span> <span style=color:#a6e22e>strchr</span>(hostname, <span style=color:#e6db74>&#39;:&#39;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (q) {
+</span></span><span style=display:flex><span>        <span style=color:#f92672>*</span>q <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;\0&#39;</span>;                <span style=color:#75715e>/* terminate host part */</span>
+</span></span><span style=display:flex><span>        portnum <span style=color:#f92672>=</span> <span style=color:#a6e22e>strdup</span>(q <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>);
+</span></span><span style=display:flex><span>    } <span style=color:#66d9ef>else</span> {
+</span></span><span style=display:flex><span>        portnum <span style=color:#f92672>=</span> <span style=color:#a6e22e>strdup</span>(<span style=color:#e6db74>&#34;80&#34;</span>);   <span style=color:#75715e>/* default HTTP port */</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* 4. path */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (path_start) {
+</span></span><span style=display:flex><span>        <span style=color:#f92672>*</span>path <span style=color:#f92672>=</span> <span style=color:#a6e22e>strdup</span>(path_start);
+</span></span><span style=display:flex><span>    } <span style=color:#66d9ef>else</span> {
+</span></span><span style=display:flex><span>        <span style=color:#f92672>*</span>path <span style=color:#f92672>=</span> <span style=color:#a6e22e>strdup</span>(<span style=color:#e6db74>&#34;/&#34;</span>);      <span style=color:#75715e>/* default path */</span>
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#f92672>*</span>host <span style=color:#f92672>=</span> hostname;
+</span></span><span style=display:flex><span>    <span style=color:#f92672>*</span>port <span style=color:#f92672>=</span> portnum;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#75715e>/* ---------- main program ---------- */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> <span style=color:#a6e22e>main</span>(<span style=color:#66d9ef>int</span> argc, <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>argv[])
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (argc <span style=color:#f92672>!=</span> <span style=color:#ae81ff>2</span>) {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fprintf</span>(stderr, <span style=color:#e6db74>&#34;usage: %s http://host[:port]/path</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>, argv[<span style=color:#ae81ff>0</span>]);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> EXIT_FAILURE;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>host <span style=color:#f92672>=</span> NULL, <span style=color:#f92672>*</span>port <span style=color:#f92672>=</span> NULL, <span style=color:#f92672>*</span>path <span style=color:#f92672>=</span> NULL;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>parse_url</span>(argv[<span style=color:#ae81ff>1</span>], <span style=color:#f92672>&amp;</span>host, <span style=color:#f92672>&amp;</span>port, <span style=color:#f92672>&amp;</span>path) <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> EXIT_FAILURE;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* 1. Resolve address */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>struct</span> addrinfo hints, <span style=color:#f92672>*</span>res, <span style=color:#f92672>*</span>res0;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>int</span> sfd <span style=color:#f92672>=</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>memset</span>(<span style=color:#f92672>&amp;</span>hints, <span style=color:#ae81ff>0</span>, <span style=color:#66d9ef>sizeof</span>(hints));
+</span></span><span style=display:flex><span>    hints.ai_socktype <span style=color:#f92672>=</span> SOCK_STREAM;
+</span></span><span style=display:flex><span>    hints.ai_family   <span style=color:#f92672>=</span> AF_UNSPEC;   <span style=color:#75715e>/* IPv4 or IPv6 */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>int</span> gai_err <span style=color:#f92672>=</span> <span style=color:#a6e22e>getaddrinfo</span>(host, port, <span style=color:#f92672>&amp;</span>hints, <span style=color:#f92672>&amp;</span>res0);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (gai_err) {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fprintf</span>(stderr, <span style=color:#e6db74>&#34;getaddrinfo: %s</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>, <span style=color:#a6e22e>gai_strerror</span>(gai_err));
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>goto</span> cleanup;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span> (res <span style=color:#f92672>=</span> res0; res; res <span style=color:#f92672>=</span> res<span style=color:#f92672>-&gt;</span>ai_next) {
+</span></span><span style=display:flex><span>        sfd <span style=color:#f92672>=</span> <span style=color:#a6e22e>socket</span>(res<span style=color:#f92672>-&gt;</span>ai_family, res<span style=color:#f92672>-&gt;</span>ai_socktype, res<span style=color:#f92672>-&gt;</span>ai_protocol);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> (sfd <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span>) <span style=color:#66d9ef>continue</span>;          <span style=color:#75715e>/* try next */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>connect</span>(sfd, res<span style=color:#f92672>-&gt;</span>ai_addr, res<span style=color:#f92672>-&gt;</span>ai_addrlen) <span style=color:#f92672>==</span> <span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>break</span>;                      <span style=color:#75715e>/* success */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>close</span>(sfd);
+</span></span><span style=display:flex><span>        sfd <span style=color:#f92672>=</span> <span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>res) {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fprintf</span>(stderr, <span style=color:#e6db74>&#34;Could not connect to %s:%s</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>, host, port);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>goto</span> cleanup;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* 2. Compose GET request */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> request[BUFSIZ];
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>int</span> req_len <span style=color:#f92672>=</span> <span style=color:#a6e22e>snprintf</span>(request, <span style=color:#66d9ef>sizeof</span>(request),
+</span></span><span style=display:flex><span>                           <span style=color:#e6db74>&#34;GET %s HTTP/1.1</span><span style=color:#ae81ff>\r\n</span><span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>                           <span style=color:#e6db74>&#34;Host: %s</span><span style=color:#ae81ff>\r\n</span><span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>                           <span style=color:#e6db74>&#34;Connection: close</span><span style=color:#ae81ff>\r\n</span><span style=color:#e6db74>&#34;</span>
+</span></span><span style=display:flex><span>                           <span style=color:#e6db74>&#34;</span><span style=color:#ae81ff>\r\n</span><span style=color:#e6db74>&#34;</span>,
+</span></span><span style=display:flex><span>                           path, host);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (req_len <span style=color:#f92672>&lt;=</span> <span style=color:#ae81ff>0</span> <span style=color:#f92672>||</span> req_len <span style=color:#f92672>&gt;=</span> (<span style=color:#66d9ef>int</span>)<span style=color:#66d9ef>sizeof</span>(request)) {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fprintf</span>(stderr, <span style=color:#e6db74>&#34;Request buffer overflow</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>goto</span> cleanup;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* 3. Send request */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>ssize_t</span> sent <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>while</span> (sent <span style=color:#f92672>&lt;</span> req_len) {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>ssize_t</span> n <span style=color:#f92672>=</span> <span style=color:#a6e22e>send</span>(sfd, request <span style=color:#f92672>+</span> sent, req_len <span style=color:#f92672>-</span> sent, <span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> (n <span style=color:#f92672>&lt;=</span> <span style=color:#ae81ff>0</span>) {
+</span></span><span style=display:flex><span>            <span style=color:#a6e22e>fprintf</span>(stderr, <span style=color:#e6db74>&#34;send failed: %s</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>, <span style=color:#a6e22e>strerror</span>(errno));
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>goto</span> cleanup;
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>        sent <span style=color:#f92672>+=</span> n;
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* 4. Read response and print headers */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> buf[BUF_SIZE];
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>size_t</span> header_len <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span>header_buf <span style=color:#f92672>=</span> NULL;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>int</span> header_found <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>size_t</span> header_written <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;            <span style=color:#75715e>/* number of bytes written into header_buf */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>while</span> (<span style=color:#f92672>!</span>header_found <span style=color:#f92672>&amp;&amp;</span> (header_len <span style=color:#f92672>=</span> <span style=color:#a6e22e>read</span>(sfd, buf, <span style=color:#66d9ef>sizeof</span>(buf))) <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>0</span>) {
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>for</span> (<span style=color:#66d9ef>size_t</span> i <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>; i <span style=color:#f92672>&lt;</span> header_len; <span style=color:#f92672>++</span>i) {
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span>header_buf)          <span style=color:#75715e>/* first allocation */</span>
+</span></span><span style=display:flex><span>                header_buf <span style=color:#f92672>=</span> <span style=color:#a6e22e>malloc</span>(BUF_SIZE);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            header_buf[header_written<span style=color:#f92672>++</span>] <span style=color:#f92672>=</span> buf[i];
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            <span style=color:#75715e>/* check for &#34;\r\n\r\n&#34; or &#34;\n\n&#34; */</span>
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>if</span> (header_written <span style=color:#f92672>&gt;=</span> <span style=color:#ae81ff>4</span> <span style=color:#f92672>&amp;&amp;</span>
+</span></span><span style=display:flex><span>                header_buf[header_written<span style=color:#f92672>-</span><span style=color:#ae81ff>4</span>]<span style=color:#f92672>==</span><span style=color:#e6db74>&#39;\r&#39;</span> <span style=color:#f92672>&amp;&amp;</span>
+</span></span><span style=display:flex><span>                header_buf[header_written<span style=color:#f92672>-</span><span style=color:#ae81ff>3</span>]<span style=color:#f92672>==</span><span style=color:#e6db74>&#39;\n&#39;</span> <span style=color:#f92672>&amp;&amp;</span>
+</span></span><span style=display:flex><span>                header_buf[header_written<span style=color:#f92672>-</span><span style=color:#ae81ff>2</span>]<span style=color:#f92672>==</span><span style=color:#e6db74>&#39;\r&#39;</span> <span style=color:#f92672>&amp;&amp;</span>
+</span></span><span style=display:flex><span>                header_buf[header_written<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>]<span style=color:#f92672>==</span><span style=color:#e6db74>&#39;\n&#39;</span>)
+</span></span><span style=display:flex><span>            {
+</span></span><span style=display:flex><span>                header_found <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>                <span style=color:#66d9ef>break</span>;
+</span></span><span style=display:flex><span>            }
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>if</span> (header_written <span style=color:#f92672>&gt;=</span> <span style=color:#ae81ff>2</span> <span style=color:#f92672>&amp;&amp;</span>
+</span></span><span style=display:flex><span>                header_buf[header_written<span style=color:#f92672>-</span><span style=color:#ae81ff>2</span>]<span style=color:#f92672>==</span><span style=color:#e6db74>&#39;\n&#39;</span> <span style=color:#f92672>&amp;&amp;</span>
+</span></span><span style=display:flex><span>                header_buf[header_written<span style=color:#f92672>-</span><span style=color:#ae81ff>1</span>]<span style=color:#f92672>==</span><span style=color:#e6db74>&#39;\n&#39;</span>)
+</span></span><span style=display:flex><span>            {
+</span></span><span style=display:flex><span>                header_found <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>                <span style=color:#66d9ef>break</span>;
+</span></span><span style=display:flex><span>            }
+</span></span><span style=display:flex><span>        }
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (header_len <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>0</span>) {
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fprintf</span>(stderr, <span style=color:#e6db74>&#34;read failed: %s</span><span style=color:#ae81ff>\n</span><span style=color:#e6db74>&#34;</span>, <span style=color:#a6e22e>strerror</span>(errno));
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (header_buf <span style=color:#f92672>&amp;&amp;</span> header_found) {
+</span></span><span style=display:flex><span>        <span style=color:#75715e>/* write headers (up to header_written) to stdout */</span>
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>fwrite</span>(header_buf, <span style=color:#ae81ff>1</span>, header_written, stdout);
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>free</span>(header_buf);
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e>/* 5. Consume the rest of the body (not printed) */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>while</span> (<span style=color:#a6e22e>read</span>(sfd, buf, <span style=color:#66d9ef>sizeof</span>(buf)) <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>0</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>cleanup:
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (sfd <span style=color:#f92672>&gt;=</span> <span style=color:#ae81ff>0</span>) <span style=color:#a6e22e>close</span>(sfd);
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>free</span>(host);
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>free</span>(port);
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>free</span>(path);
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>freeaddrinfo</span>(res0);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> EXIT_SUCCESS;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>Interestingly, for some reason it only compiles properly with C23, which I found quite surprising.</p><p>And when I ran the program, here&rsquo;s what happened:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>λ ~/Downloads/ ./wget_hdr http://tymscar.com
+</span></span><span style=display:flex><span>HTTP/1.1 <span style=color:#ae81ff>301</span> Moved Permanently
+</span></span><span style=display:flex><span>Date: Tue, <span style=color:#ae81ff>05</span> Aug <span style=color:#ae81ff>2025</span> 22:00:38 GMT
+</span></span><span style=display:flex><span>Transfer-Encoding: chunked
+</span></span><span style=display:flex><span>Connection: close
+</span></span><span style=display:flex><span>Location: https://tymscar.com/
+</span></span><span style=display:flex><span>Report-To: <span style=color:#f92672>{</span><span style=color:#e6db74>&#34;group&#34;</span>:<span style=color:#e6db74>&#34;cf-nel&#34;</span>,<span style=color:#e6db74>&#34;max_age&#34;</span>:604800,<span style=color:#e6db74>&#34;endpoints&#34;</span>:<span style=color:#f92672>[{</span><span style=color:#e6db74>&#34;url&#34;</span>:<span style=color:#e6db74>&#34;https://a.nel.cloudflare.com/report/v4?s=EP%2B2BZOdIlKxJq%2BWb5%2B%2BN99CnktH8%2FEvtZBUWo8ZCnKEuiHTfdXOmUOcw3UC3i0Qwc5LQ5agyX7rKFfPjjQ4RtchcakI8GX%2BIw%3D%3D&#34;</span><span style=color:#f92672>}]}</span>
+</span></span><span style=display:flex><span>Nel: <span style=color:#f92672>{</span><span style=color:#e6db74>&#34;report_to&#34;</span>:<span style=color:#e6db74>&#34;cf-nel&#34;</span>,<span style=color:#e6db74>&#34;success_fraction&#34;</span>:0.0,<span style=color:#e6db74>&#34;max_age&#34;</span>:604800<span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span>Server: cloudflare
+</span></span><span style=display:flex><span>CF-RAY: 96a991862c2aef59-LHR
+</span></span><span style=display:flex><span>alt-svc: h3<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;:443&#34;</span>; ma<span style=color:#f92672>=</span><span style=color:#ae81ff>86400</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>λ ~/Downloads/
+</span></span></code></pre></div><h2 id=the-verdict>The verdict<a href=#the-verdict class=hanchor arialabel=Anchor>#</a></h2><p>I find it to be extremely fast for a model that runs locally on a GPU. It&rsquo;s quite good at reasoning, and I like the fact that you can see the reasoning tokens. I really like how well it can go through massive lists of text and code and find a needle in the haystack. And I also like the fact that it&rsquo;s free and open source.</p><p>The things I don&rsquo;t like are how bad it is at tool calling and the fact that no matter what I try to do, I cannot get it to reply with fewer tokens. It always, especially when it comes to the thinking tokens, tends to give back pages and pages of tokens, which sometimes you wouldn&rsquo;t necessarily want.</p><p>For example, in my case, I would want to use this model in my Home Assistant setup, but because of the thinking tokens and because I cannot get it to not do any reasoning (even when I specify it through Ollama), it tends to be way too slow. Even though it&rsquo;s actually a very fast model, just waiting on all those tokens is way too slow because of the thinking process.</p><p>Those are the main negatives. Overall though, give it a go, it&rsquo;s definitely worth experimenting with, especially if you have the hardware to run it locally.</p></div></div><div class=pagination><div class=pagination__title><span class=pagination__title-h>Read other posts</span><hr></div><div class=pagination__buttons><a href=/posts/nixosdockerwithsecrets/ class="button inline next">[<span class=button__text>Public Dotfiles, Private Secrets: My Nix OS Docker Workflow</span>] ></a></div></div></article></div><footer class=footer><div class=footer__inner><div class=copyright><span>© 2025 Powered by <a href=https://gohugo.io>Hugo</a></span>
+<span>:: <a href=https://github.com/panr/hugo-theme-terminal target=_blank>Theme</a> made by <a href=https://github.com/panr target=_blank>panr</a></span></div></div></footer><script type=text/javascript src=/bundle.min.js></script></div></body></html>

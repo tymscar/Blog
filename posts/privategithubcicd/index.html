@@ -156,7 +156,7 @@
 </span></span><span style=display:flex><span>    <span style=color:#f92672>external</span>: <span style=color:#66d9ef>true</span>
 </span></span></code></pre></div><p>Any <code>labels</code> you see are optional. I included them to route internal traffic and assign SSL certificates.</p><p><code>PUID</code> and <code>PGID</code> labels are there to grant necessary permissions to the webhook user later.</p><p>The <code>TUNNEL_TOKEN</code> variable is the key from Cloudflare you get when creating a tunnel. To get yours, visit Cloudflare -> Zero Trust -> Access -> Tunnels, and establish a tunnel with your desired URL, in my case, <code>webhook.tymsc.ar</code>.</p><p>Because the tunnel and webhook service are defined in this Docker Compose file, they can reference each other by name. So, in the Cloudflare online console, when you create the tunnel, set the Service parameter to <code>http://webhook:9000</code>. 9000 is the default port for <code>roxedus/webhook</code>.</p><p>An observant reader might notice the webhook container uses a Dockerfile instead of a container name. That&rsquo;s because I needed SSH access on that container, and the base container didn&rsquo;t have it. So, I added it. Here&rsquo;s the Dockerfile:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-Dockerfile data-lang=Dockerfile><span style=display:flex><span><span style=color:#66d9ef>FROM</span> <span style=color:#e6db74>roxedus/webhook</span><span style=color:#960050;background-color:#1e0010>
 </span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> apk --no-cache add openssh-client<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#66d9ef>RUN</span> apk --no-cache add openssh-client<span style=color:#960050;background-color:#1e0010>
 </span></span></span></code></pre></div><p>Here&rsquo;s the folder structure for the webhook service:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>.
 </span></span><span style=display:flex><span>|-- Dockerfile
 </span></span><span style=display:flex><span>|-- docker-compose.yml
@@ -175,7 +175,7 @@
 </span></span><span style=display:flex><span>  }
 </span></span><span style=display:flex><span>]
 </span></span></code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e>#!/bin/sh
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span></span><span style=display:flex><span>
 </span></span><span style=display:flex><span>COMMAND<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;nohup docker compose -f /root/project/docker-compose.yml up --force-recreate --build -d &amp;&#34;</span>
 </span></span><span style=display:flex><span>HOST_IP<span style=color:#f92672>=</span><span style=color:#66d9ef>$(</span>ip route | awk <span style=color:#e6db74>&#39;/default/ { print $3 }&#39;</span><span style=color:#66d9ef>)</span>
 </span></span><span style=display:flex><span>
@@ -219,16 +219,16 @@
 </span></span><span style=display:flex><span>  <span style=color:#f92672>proxy</span>:
 </span></span><span style=display:flex><span>    <span style=color:#f92672>external</span>: <span style=color:#66d9ef>true</span>
 </span></span></code></pre></div><p>Like before, the <code>labels</code> are optional. They&rsquo;re there to access <code>project.tymsc.ar</code> locally, with SSL certificates handled by Traefik.</p><p>The critical part is the secrets passed as a volume and the use of a custom Dockerfile. Here&rsquo;s the Dockerfile:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-Dockerfile data-lang=Dockerfile><span style=display:flex><span><span style=color:#66d9ef>FROM</span> <span style=color:#e6db74>node:18</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>WORKDIR</span> <span style=color:#e6db74>/app</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> apt-get update <span style=color:#f92672>&amp;&amp;</span> apt-get install -y git openssh-client <span style=color:#f92672>&amp;&amp;</span> npm install -g serve<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#66d9ef>WORKDIR</span> <span style=color:#e6db74>/app</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#66d9ef>RUN</span> apt-get update <span style=color:#f92672>&amp;&amp;</span> apt-get install -y git openssh-client <span style=color:#f92672>&amp;&amp;</span> npm install -g serve<span style=color:#960050;background-color:#1e0010>
 </span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>COPY</span> entrypoint.sh /entrypoint.sh<span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>RUN</span> chmod +x /entrypoint.sh<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#66d9ef>COPY</span> entrypoint.sh /entrypoint.sh<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#66d9ef>RUN</span> chmod +x /entrypoint.sh<span style=color:#960050;background-color:#1e0010>
 </span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>EXPOSE</span> <span style=color:#e6db74>5000</span><span style=color:#960050;background-color:#1e0010>
-</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>CMD</span> [<span style=color:#e6db74>&#34;/entrypoint.sh&#34;</span>]<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#66d9ef>EXPOSE</span> <span style=color:#e6db74>5000</span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#66d9ef>CMD</span> [<span style=color:#e6db74>&#34;/entrypoint.sh&#34;</span>]<span style=color:#960050;background-color:#1e0010>
 </span></span></span></code></pre></div><p>As you can see, each time this runs, it calls an <code>entrypoint.sh</code> script. This ensures tasks inside it execute every time this container is recreated. As you now know, this happens every time the webhook is called. Let&rsquo;s look at the script:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span><span style=color:#75715e>#!/bin/sh
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span></span><span style=display:flex><span>
 </span></span><span style=display:flex><span>mkdir -p ~/.ssh
 </span></span><span style=display:flex><span>cp /secrets/id_rsa ~/.ssh/
 </span></span><span style=display:flex><span>chmod <span style=color:#ae81ff>600</span> ~/.ssh/id_rsa

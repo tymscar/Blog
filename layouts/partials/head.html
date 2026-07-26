@@ -49,10 +49,19 @@
 <meta property="og:site_name" content="{{ $.Site.Title }}" />
 {{ $ogImage := "" }}
 {{ if .IsPage }}
-  {{ $images := .Content | findRE `<img[^>]*src="([^"]+)"` }}
-  {{ if ge (len $images) 1 }}
-    {{ $firstImageTag := index $images 0 }}
-    {{ $ogImage = $firstImageTag | replaceRE `.*src="([^"]+)".*` "$1" }}
+  {{ with .Params.cover }}
+    {{ $ogImage = . }}
+  {{ else }}
+    {{ with .Params.images }}
+      {{ $ogImage = index . 0 }}
+    {{ end }}
+  {{ end }}
+  {{ if not $ogImage }}
+    {{ $images := .Content | findRE `<img[^>]*src="([^"]+)"` }}
+    {{ if ge (len $images) 1 }}
+      {{ $firstImageTag := index $images 0 }}
+      {{ $ogImage = $firstImageTag | replaceRE `.*src="([^"]+)".*` "$1" }}
+    {{ end }}
   {{ end }}
 {{ end }}
 

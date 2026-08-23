@@ -17,6 +17,8 @@ keywords:
   - azure sdk for java
   - debugging
   - minimal reproduction
+images:
+  - /how-to-report-a-bug/cover.png
 description: A production ByteBuf leak took me from Netty logs to a fix shipped by Microsoft in a few weeks. Here is the step-by-step process I use to report bugs so they actually get fixed.
 showFullContent: false
 readingTime: true

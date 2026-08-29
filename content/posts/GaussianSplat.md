@@ -58,7 +58,7 @@ Here is a video of the end result. I believe it looks incredible, and it would a
   Your browser does not support the video tag.
 </video>
 
-[face-scan]: https://www.tymscar.com/assets/images/visualisations/ezgif.com-gif-maker285292.gif
+[face-scan]: /gaussian-splat/face-scan.gif
 [paper-link]: https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/3d_gaussian_splatting_high.pdf
 [github-link]: https://github.com/graphdeco-inria/gaussian-splatting
 [vfio-link]: https://www.youtube.com/watch?v=6FI31QDtyy4

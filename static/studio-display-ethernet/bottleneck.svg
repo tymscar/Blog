@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 50 1200 400" font-family="'Fira Code', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="15">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f0f0f0"/></marker><marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a9a9a"/></marker><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ff4136"/></marker><marker id="ay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ffdc00"/></marker>
+  </defs>
+
+  <g fill="none" stroke-width="1.5">
+    <!-- boxes -->
+    <rect x="30" y="130" width="150" height="140" stroke="#f0f0f0"/>
+    <rect x="405" y="80" width="230" height="250" stroke="#f0f0f0"/>
+    <rect x="1045" y="130" width="130" height="140" stroke="#f0f0f0"/>
+    <!-- bucket -->
+    <path d="M455,122 V280 H585 V122" stroke="#f0f0f0" stroke-width="2"/>
+    <!-- links -->
+    <line x1="182" y1="226" x2="398" y2="226" stroke="#f0f0f0" marker-end="url(#a)"/>
+    <line x1="637" y1="226" x2="1041" y2="226" stroke="#f0f0f0" marker-end="url(#a)"/>
+    <line x1="1043" y1="248" x2="640" y2="248" stroke="#ffdc00" stroke-dasharray="8 6" marker-end="url(#ay)"/>
+    <line x1="273" y1="268" x2="273" y2="232" stroke="#9a9a9a" marker-end="url(#ad)"/>
+    <!-- drop -->
+    <path d="M585,126 C 620,170 625,290 608,352" stroke="#ff4136" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+    <!-- burst bracket and empty slots -->
+    <path d="M653,156 V150 H733 V156" stroke="#2ecc40" stroke-width="1"/>
+    <rect x="742" y="164" width="78" height="16" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="3 3"/>
+    <rect x="917" y="164" width="78" height="16" stroke="#9a9a9a" stroke-width="1" stroke-dasharray="3 3"/>
+  </g>
+
+  <rect x="200" y="201" width="26" height="18" fill="#0074d9"/><rect x="240" y="201" width="26" height="18" fill="#0074d9"/><rect x="280" y="201" width="26" height="18" fill="#0074d9"/><rect x="320" y="201" width="26" height="18" fill="#0074d9"/><rect x="360" y="201" width="26" height="18" fill="#0074d9"/>
+  <rect x="462" y="258" width="26" height="18" fill="#0074d9"/><rect x="492" y="258" width="26" height="18" fill="#0074d9"/><rect x="522" y="258" width="26" height="18" fill="#0074d9"/><rect x="552" y="258" width="26" height="18" fill="#0074d9"/><rect x="462" y="236" width="26" height="18" fill="#0074d9"/><rect x="492" y="236" width="26" height="18" fill="#0074d9"/><rect x="522" y="236" width="26" height="18" fill="#0074d9"/><rect x="552" y="236" width="26" height="18" fill="#0074d9"/><rect x="462" y="214" width="26" height="18" fill="#0074d9"/><rect x="492" y="214" width="26" height="18" fill="#0074d9"/><rect x="522" y="214" width="26" height="18" fill="#0074d9"/><rect x="552" y="214" width="26" height="18" fill="#0074d9"/><rect x="462" y="192" width="26" height="18" fill="#0074d9"/><rect x="492" y="192" width="26" height="18" fill="#0074d9"/><rect x="522" y="192" width="26" height="18" fill="#0074d9"/><rect x="552" y="192" width="26" height="18" fill="#0074d9"/><rect x="462" y="170" width="26" height="18" fill="#0074d9"/><rect x="492" y="170" width="26" height="18" fill="#0074d9"/><rect x="522" y="170" width="26" height="18" fill="#0074d9"/><rect x="552" y="170" width="26" height="18" fill="#0074d9"/><rect x="462" y="148" width="26" height="18" fill="#0074d9"/><rect x="492" y="148" width="26" height="18" fill="#0074d9"/><rect x="522" y="148" width="26" height="18" fill="#0074d9"/><rect x="552" y="148" width="26" height="18" fill="#0074d9"/><rect x="462" y="126" width="26" height="18" fill="#0074d9"/><rect x="492" y="126" width="26" height="18" fill="#0074d9"/><rect x="522" y="126" width="26" height="18" fill="#0074d9"/><rect x="552" y="126" width="26" height="18" fill="#0074d9"/>
+  <rect x="655" y="164" width="16" height="16" fill="#2ecc40"/><rect x="675" y="164" width="16" height="16" fill="#2ecc40"/><rect x="695" y="164" width="16" height="16" fill="#2ecc40"/><rect x="715" y="164" width="16" height="16" fill="#2ecc40"/><rect x="830" y="164" width="16" height="16" fill="#2ecc40"/><rect x="850" y="164" width="16" height="16" fill="#2ecc40"/><rect x="870" y="164" width="16" height="16" fill="#2ecc40"/><rect x="890" y="164" width="16" height="16" fill="#2ecc40"/>
+  <rect x="595" y="360" width="26" height="18" fill="#ff4136" transform="rotate(25 608 369)"/>
+
+  <g text-anchor="middle">
+    <text x="105" y="200" fill="#f0f0f0" font-size="18">Router</text>
+    <text x="105" y="222" fill="#9a9a9a" font-size="13">(the internet)</text>
+
+    <text x="290" y="188" fill="#f0f0f0">Ethernet, 2.5 Gb/s</text>
+    <text x="290" y="287" fill="#9a9a9a" font-size="12">no waiting for confirmation,</text>
+    <text x="290" y="303" fill="#9a9a9a" font-size="12">just pushing as fast</text>
+    <text x="290" y="319" fill="#9a9a9a" font-size="12">as they can go</text>
+
+    <text x="520" y="106" fill="#f0f0f0" font-size="17">USB Ethernet adapter</text>
+    <text x="520" y="302" fill="#f0f0f0" font-size="13">~35 KB buffer: FULL</text>
+    <text x="520" y="320" fill="#9a9a9a" font-size="12">fills in ~0.65 ms</text>
+
+    <text x="608" y="410" fill="#ff4136" font-size="14">frame dropped</text>
+    <text x="608" y="428" fill="#ff4136" font-size="12">(~17% of them, invisible to macOS)</text>
+
+    <text x="890" y="84" fill="#f0f0f0">USB through the display's hub(s), 5 Gb/s link</text>
+    <text x="693" y="142" fill="#2ecc40" font-size="12">burst: 4 * 1 KB</text>
+    <text x="781" y="198" fill="#9a9a9a" font-size="12">waiting for</text>
+    <text x="781" y="213" fill="#9a9a9a" font-size="12">go-ahead</text>
+    <text x="842" y="270" fill="#ffdc00" font-size="13">"go ahead, send 4 more" (every round trip)</text>
+
+    <text x="1110" y="200" fill="#f0f0f0" font-size="18">Mac</text>
+    <text x="1110" y="222" fill="#9a9a9a" font-size="11">drains ~2.07 Gb/s</text>
+  </g>
+</svg>
